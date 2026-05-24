@@ -171,9 +171,24 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 py-10 px-6">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <span className="font-display font-bold text-revela-navy">
-            Project <span className="text-revela-blue">Revela</span>
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <div>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px' }}>
+      <div style={{ width: '6px', height: '11px', background: '#93c5fd', borderRadius: '2px 2px 0 0' }} />
+      <div style={{ width: '6px', height: '18px', background: '#2563eb', borderRadius: '2px 2px 0 0' }} />
+      <div style={{ width: '6px', height: '26px', background: '#1d4ed8', borderRadius: '2px 2px 0 0' }} />
+      <div style={{ width: '6px', height: '14px', background: '#bfdbfe', borderRadius: '2px 2px 0 0' }} />
+      <div style={{ width: '6px', height: '8px', background: '#d1d5db', borderRadius: '2px 2px 0 0' }} />
+      <div style={{ width: '6px', height: '20px', background: '#2563eb', borderRadius: '2px 2px 0 0' }} />
+    </div>
+    <div style={{ height: '1.5px', background: '#e5e7eb', borderRadius: '1px', marginTop: '3px' }} />
+  </div>
+  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, textTransform: 'uppercase', letterSpacing: '3px', fontSize: '9px', color: '#9ca3af' }}>Project</span>
+    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, textTransform: 'uppercase', fontSize: '26px', lineHeight: 1 }}>REVELA<span style={{ color: '#2563eb' }}>.</span></span>
+    <span style={{ fontSize: '8px', letterSpacing: '2px', textTransform: 'uppercase', color: '#9ca3af', marginTop: '2px' }}>Civic Technology</span>
+  </div>
+</div>
           <p className="text-xs text-gray-400 text-center">
             © 2026 Project Revela. Built for the American voter.
           </p>
