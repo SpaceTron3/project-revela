@@ -9,6 +9,13 @@ const PARTY_COLORS = {
   I: { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-100', label: 'Independent' },
 }
 
+function formatMoney(amount) {
+  if (!amount) return '$0'
+  if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`
+  if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`
+  return `$${amount.toFixed(0)}`
+}
+
 function StatCard({ label, value, sub }) {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-5 text-center">
@@ -30,11 +37,31 @@ function SectionHeader({ title, icon }) {
   )
 }
 
+function FundingBar({ label, amount, max }) {
+  const pct = max > 0 ? Math.min((amount / max) * 100, 100) : 0
+  return (
+    <div className="py-2 border-b border-gray-50 last:border-0">
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-sm text-revela-navy truncate pr-4">{label}</span>
+        <span className="text-sm font-medium text-revela-blue shrink-0">{formatMoney(amount)}</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-revela-blue rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function MemberProfile({ params }) {
   const { bioguideId } = params
   const [member, setMember] = useState(null)
   const [votes, setVotes] = useState([])
   const [bills, setBills] = useState([])
+  const [finance, setFinance] = useState(null)
+  const [financeLoading, setFinanceLoading] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -52,10 +79,21 @@ export default function MemberProfile({ params }) {
         setMember(memberData.member)
         setVotes(votesData.votes || [])
         setBills(billsData.bills || [])
+
+        // Fetch FEC data after we have member info
+        if (memberData.member) {
+          const m = memberData.member
+          const fecRes = await fetch(
+            `/api/fec?name=${encodeURIComponent(m.directOrderName || m.invertedOrderName || '')}&state=${m.state || ''}`
+          )
+          const fecData = await fecRes.json()
+          setFinance(fecData.finance)
+        }
       } catch (err) {
         console.error(err)
       } finally {
         setLoading(false)
+        setFinanceLoading(false)
       }
     }
     fetchData()
@@ -101,6 +139,9 @@ export default function MemberProfile({ params }) {
   const isSenator = latestTerm.memberType === 'Senator'
   const yearsInOffice = latestTerm.startYear ? new Date().getFullYear() - latestTerm.startYear : '—'
   const totalTerms = member.terms?.length || '—'
+
+  const maxContributor = finance?.contributors?.[0]?.total || 0
+  const maxIndustry = finance?.industries?.[0]?.total || 0
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -171,7 +212,71 @@ export default function MemberProfile({ params }) {
           <StatCard label="Recent Votes" value={votes.length || '—'} sub="On record" />
         </div>
 
-        {/* Committees */}
+        {/* Campaign Finance */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
+          <SectionHeader
+            title="Campaign Finance"
+            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+          />
+
+          {financeLoading ? (
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-100 rounded w-1/2"/>
+              <div className="h-4 bg-gray-100 rounded w-1/3"/>
+            </div>
+          ) : !finance ? (
+            <p className="text-sm text-gray-400">No FEC campaign finance data found for this member.</p>
+          ) : (
+            <>
+              {/* Finance summary */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="font-display text-2xl font-bold text-revela-blue">{formatMoney(finance.totalRaised)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Total Raised</div>
+                  {finance.cycle && <div className="text-xs text-gray-400">{finance.cycle} cycle</div>}
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="font-display text-2xl font-bold text-revela-navy">{formatMoney(finance.totalSpent)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Total Spent</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 text-center">
+                  <div className="font-display text-2xl font-bold text-green-600">{formatMoney(finance.cashOnHand)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Cash on Hand</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Top contributors */}
+                {finance.contributors?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-revela-navy mb-3">Top Donors</h3>
+                    <div>
+                      {finance.contributors.slice(0, 8).map((c, i) => (
+                        <FundingBar key={i} label={c.name} amount={c.total} max={maxContributor} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top industries */}
+                {finance.industries?.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-revela-navy mb-3">Top Industries</h3>
+                    <div>
+                      {finance.industries.slice(0, 8).map((ind, i) => (
+                        <FundingBar key={i} label={ind.name || 'Unknown'} amount={ind.total} max={maxIndustry} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-400 mt-4">Source: Federal Election Commission (FEC) public data</p>
+            </>
+          )}
+        </div>
+
+        {/* Leadership */}
         {member.leadership?.length > 0 && (
           <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
             <SectionHeader
