@@ -10,29 +10,16 @@ export async function GET(request) {
   const API_KEY = process.env.FEC_API_KEY
 
   try {
-    // Clean up name - convert "Last, First" to "First Last"
-    const cleanName = name.includes(',')
-      ? name.split(',').reverse().join(' ').trim()
-      : name.trim()
+    // Extract last name only for best FEC matching
+    const lastName = name.includes(',')
+      ? name.split(',')[0].trim()
+      : name.split(' ').pop().trim()
 
-    // Use the /candidates/ endpoint with name search
-    const params = new URLSearchParams({
-      q: cleanName,
-      per_page: '10',
-      sort: '-receipts',
-      api_key: API_KEY,
-    })
+    const url = `https://api.open.fec.gov/v1/candidates/?name=${encodeURIComponent(lastName)}&per_page=50&api_key=${API_KEY}${state ? `&state=${state}` : ''}`
 
-    if (state) params.append('state', state)
-
-    const candidateRes = await fetch(
-      `https://api.open.fec.gov/v1/candidates/?${params}`,
-      { next: { revalidate: 86400 } }
-    )
+    const candidateRes = await fetch(url, { next: { revalidate: 86400 } })
 
     if (!candidateRes.ok) {
-      const err = await candidateRes.text()
-      console.error('FEC candidates error:', err)
       return Response.json({ finance: null, message: 'FEC API error' })
     }
 
@@ -40,33 +27,31 @@ export async function GET(request) {
     const candidates = candidateData.results || []
 
     if (candidates.length === 0) {
-      // Try with just last name
-      const lastName = cleanName.split(' ').pop()
-      const retryParams = new URLSearchParams({
-        q: lastName,
-        per_page: '5',
-        sort: '-receipts',
-        api_key: API_KEY,
-      })
-      if (state) retryParams.append('state', state)
-
-      const retryRes = await fetch(
-        `https://api.open.fec.gov/v1/candidates/?${retryParams}`,
-        { next: { revalidate: 86400 } }
-      )
-      const retryData = await retryRes.json()
-      if (!retryData.results?.length) {
-        return Response.json({ finance: null, message: 'No FEC data found' })
-      }
-      candidates.push(...retryData.results)
+      return Response.json({ finance: null, message: 'No FEC data found' })
     }
 
-    const candidate = candidates[0]
+    // Filter by state if provided, then pick most recent active candidate
+    const stateFiltered = state
+      ? candidates.filter(c => c.state === state || c.state === 'US')
+      : candidates
+
+    // Sort: prefer candidates with raised funds, most recent active_through
+    const sorted = stateFiltered.sort((a, b) => {
+      if (a.has_raised_funds && !b.has_raised_funds) return -1
+      if (!a.has_raised_funds && b.has_raised_funds) return 1
+      return (b.active_through || 0) - (a.active_through || 0)
+    })
+
+    const candidate = sorted[0]
+    if (!candidate) {
+      return Response.json({ finance: null, message: 'No matching candidate found' })
+    }
+
     const candidateId = candidate.candidate_id
 
     // Get financial totals
     const totalsRes = await fetch(
-      `https://api.open.fec.gov/v1/candidate/${candidateId}/totals/?per_page=1&api_key=${API_KEY}`,
+      `https://api.open.fec.gov/v1/candidate/${candidateId}/totals/?per_page=1&sort=-cycle&api_key=${API_KEY}`,
       { next: { revalidate: 86400 } }
     )
     const totalsData = await totalsRes.json()
@@ -80,7 +65,7 @@ export async function GET(request) {
     const contributorsData = await contributorsRes.json()
     const contributors = contributorsData.results || []
 
-    // Get industry breakdown  
+    // Get industry breakdown
     const industriesRes = await fetch(
       `https://api.open.fec.gov/v1/schedules/schedule_a/by_industry/?candidate_id=${candidateId}&per_page=10&sort=-total&api_key=${API_KEY}`,
       { next: { revalidate: 86400 } }
@@ -94,7 +79,7 @@ export async function GET(request) {
         name: candidate.name,
         party: candidate.party,
         state: candidate.state,
-        office: candidate.office,
+        office: candidate.office_full,
         totalRaised: totals?.receipts || 0,
         totalSpent: totals?.disbursements || 0,
         cashOnHand: totals?.last_cash_on_hand_end_period || 0,
