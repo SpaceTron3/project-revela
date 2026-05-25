@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Navbar from '../../../components/Navbar'
+import Navbar from '../components/Navbar'
 
 const PARTY_COLORS = {
   R: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100', label: 'Republican' },
