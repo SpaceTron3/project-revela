@@ -34,8 +34,8 @@ export default function Navbar() {
         <a href="/"><Logo /></a>
 
         <div className="hidden md:flex items-center gap-8">
-          <a href="#how-it-works" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">How it works</a>
-          <a href="#mission" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Mission</a>
+          <a href="/#how-it-works" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">How it works</a>
+          <a href="/#mission" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Mission</a>
           <a href="/congress" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Congress</a>
           <a href="#waitlist" className="text-sm font-medium bg-revela-blue text-white px-5 py-2 rounded-lg hover:bg-revela-blue-dark transition-colors">
             Join waitlist
@@ -61,8 +61,8 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white px-6 py-4 flex flex-col gap-4">
-          <a href="#how-it-works" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>How it works</a>
-          <a href="#mission" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Mission</a>
+          <a href="/#how-it-works" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>How it works</a>
+          <a href="/#mission" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Mission</a>
           <a href="/congress" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Congress</a>
           <a href="#waitlist" className="text-sm font-medium text-revela-blue" onClick={() => setMenuOpen(false)}>Join waitlist →</a>
         </div>
