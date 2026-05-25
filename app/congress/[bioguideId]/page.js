@@ -84,7 +84,7 @@ export default function MemberProfile({ params }) {
         if (memberData.member) {
           const m = memberData.member
           const fecRes = await fetch(
-            `/api/fec?name=${encodeURIComponent(m.directOrderName || m.invertedOrderName || '')}&state=${m.state || ''}`
+           `/api/fec?name=${encodeURIComponent(m.lastName || m.directOrderName || '')}&state=${m.terms?.[m.terms.length - 1]?.stateCode || ''}` 
           )
           const fecData = await fecRes.json()
           setFinance(fecData.finance)
