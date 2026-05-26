@@ -1,5 +1,8 @@
+'use client'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import WaitlistForm from '../components/WaitlistForm'
+
 function CountdownTimer() {
   const [time, setTime] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
 
@@ -31,6 +34,7 @@ function CountdownTimer() {
     </div>
   )
 }
+
 const features = [
   {
     icon: (
@@ -139,14 +143,14 @@ export default function Home() {
           ))}
         </div>
       </section>
-<section className="py-20 px-6 bg-revela-navy">
+
+      <section className="py-20 px-6 bg-revela-navy">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-xs font-medium tracking-widest uppercase text-blue-300 mb-4">2026 Midterm Elections</p>
           <h2 className="font-display text-4xl font-bold text-white mb-6">November 3, 2026</h2>
           <CountdownTimer />
-          
-            <a
-href="https://vote.gov"
+          <a
+            href="https://vote.gov"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block mt-8 text-sm font-medium text-white border border-white/30 px-6 py-3 rounded-lg hover:bg-white/10 transition-colors"
@@ -164,9 +168,8 @@ href="https://vote.gov"
             <p className="text-gray-500 mt-3">Click your state to explore who represents you in Congress.</p>
           </div>
           <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center">
-            
-              <a
-href="/map"
+            <a
+              href="/map"
               className="inline-block text-sm font-medium bg-revela-blue text-white px-6 py-3 rounded-lg hover:bg-revela-blue-dark transition-colors"
             >
               Open interactive map →
@@ -175,6 +178,7 @@ href="/map"
           </div>
         </div>
       </section>
+
       <section id="how-it-works" className="bg-gray-50 py-28 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
