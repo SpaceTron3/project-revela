@@ -14,21 +14,30 @@ const STATE_CODES = {
   'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY',
 }
 
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return }
+    const s = document.createElement('script')
+    s.src = src
+    s.onload = resolve
+    s.onerror = reject
+    document.head.appendChild(s)
+  })
+}
+
 export default function USMap({ onStateSelect, selectedState }) {
   const svgRef = useRef(null)
   const [loaded, setLoaded] = useState(false)
   const [hoveredState, setHoveredState] = useState(null)
+  const pathsRef = useRef(null)
 
   useEffect(() => {
-    let d3, topojson
-
     async function loadMap() {
-      const [d3Module, topoModule] = await Promise.all([
-        import('https://cdn.jsdelivr.net/npm/d3@7/+esm'),
-        import('https://cdn.jsdelivr.net/npm/topojson-client@3/+esm'),
-      ])
-      d3 = d3Module
-      topojson = topoModule
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js')
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js')
+
+      const d3 = window.d3
+      const topojson = window.topojson
 
       const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json')
       const features = topojson.feature(us, us.objects.states).features
@@ -39,7 +48,7 @@ export default function USMap({ onStateSelect, selectedState }) {
       const projection = d3.geoAlbersUsa().scale(1280).translate([480, 300])
       const path = d3.geoPath(projection)
 
-      svg.selectAll('path')
+      pathsRef.current = svg.selectAll('path')
         .data(features)
         .join('path')
         .attr('d', path)
@@ -71,17 +80,6 @@ export default function USMap({ onStateSelect, selectedState }) {
 
     loadMap()
   }, [])
-
-  useEffect(() => {
-    if (!svgRef.current || !loaded) return
-    const paths = svgRef.current.querySelectorAll('path')
-    paths.forEach(p => {
-      const name = p.__data__?.properties?.name
-      if (name) {
-        p.setAttribute('fill', name === selectedState ? '#185FA5' : '#B5D4F4')
-      }
-    })
-  }, [selectedState, loaded])
 
   return (
     <div className="relative w-full">
