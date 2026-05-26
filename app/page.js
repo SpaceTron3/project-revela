@@ -160,6 +160,58 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-20 px-6 bg-gray-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-xs font-medium tracking-widest uppercase text-revela-blue mb-4">Voter Values Survey</p>
+              <h2 className="font-display text-4xl font-bold text-revela-navy mb-4 leading-tight">
+                Who do you <em className="not-italic text-revela-blue">actually</em> align with?
+              </h2>
+              <p className="text-gray-500 leading-relaxed mb-6">
+                Forget party labels. Answer 15 questions on the issues that matter most to you — healthcare, climate, the economy, term limits, and more. We'll match you to the Congress members whose voting records best reflect your values. The party reveal comes last.
+              </p>
+              <div className="space-y-3 mb-8">
+                {[
+                  'Based on real congressional voting records',
+                  'Nonpartisan — no party labels until the reveal',
+                  'You might be surprised who you align with',
+                ].map(item => (
+                  <div key={item} className="flex items-center gap-3 text-sm text-gray-600">
+                    <div className="w-5 h-5 rounded-full bg-revela-blue-light flex items-center justify-center shrink-0">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="3">
+                        <path d="M20 6L9 17l-5-5"/>
+                      </svg>
+                    </div>
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <a
+                href="/survey"
+                className="inline-block bg-revela-blue text-white px-8 py-4 rounded-xl text-sm font-medium hover:bg-revela-blue-dark transition-colors"
+              >
+                Take the survey →
+              </a>
+            </div>
+            <div className="bg-white border border-gray-100 rounded-2xl p-8">
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <p className="text-xs font-medium tracking-widest uppercase text-gray-400 mb-1">Sample question</p>
+                  <p className="text-sm font-medium text-revela-navy">Congress should impose term limits on its members.</p>
+                </div>
+                {['Strongly Agree', 'Agree', 'Neutral', 'Disagree', 'Strongly Disagree'].map((label, i) => (
+                  <div key={label} className={`px-5 py-3 rounded-xl border text-sm font-medium ${i === 1 ? 'border-revela-blue bg-revela-blue-light text-revela-blue' : 'border-gray-100 text-gray-400'}`}>
+                    {label}
+                  </div>
+                ))}
+                <p className="text-xs text-gray-400 text-center pt-2">15 questions · ~3 minutes · No signup required</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
