@@ -7,107 +7,92 @@ const QUESTIONS = [
   {
     id: 'healthcare',
     topic: 'Healthcare',
-    question: 'The government should provide universal healthcare coverage to all Americans.',
+    question: 'The federal government should play a larger role in ensuring Americans have access to healthcare coverage.',
     icon: '🏥',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'climate',
     topic: 'Climate & Energy',
-    question: 'The federal government should implement strict regulations to reduce carbon emissions and combat climate change.',
+    question: 'Environmental regulations on energy production and emissions should be strengthened, even if it increases costs for businesses.',
     icon: '🌍',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'taxes',
     topic: 'Taxation',
-    question: 'Wealthy individuals and corporations should pay significantly higher tax rates to fund public services.',
+    question: 'The current tax system places too much burden on middle and lower income Americans relative to the wealthy.',
     icon: '💰',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'immigration',
     topic: 'Immigration',
-    question: 'The U.S. should create a clear pathway to citizenship for undocumented immigrants currently living in the country.',
+    question: 'U.S. immigration policy should prioritize increasing legal pathways over stricter border enforcement.',
     icon: '🗽',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'guns',
     topic: 'Gun Policy',
-    question: 'Congress should pass stricter federal laws regulating the purchase and ownership of firearms.',
+    question: 'The right to own firearms should be preserved, with minimal additional federal restrictions beyond current law.',
     icon: '⚖️',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'education',
     topic: 'Education',
-    question: 'The federal government should increase funding for public schools and make college more affordable.',
+    question: 'Federal funding and oversight of public education should be increased to reduce inequality between school districts.',
     icon: '🎓',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'defense',
     topic: 'Defense & Foreign Policy',
-    question: 'The U.S. should increase military spending to maintain global leadership and protect national security.',
+    question: 'Maintaining a strong military and active global presence is essential to protecting American interests abroad.',
     icon: '🛡️',
-    positions: { agree: 'R', disagree: 'D' },
   },
   {
     id: 'economy',
     topic: 'Economy',
-    question: 'Government regulation of businesses and financial markets should be reduced to stimulate economic growth.',
+    question: 'Free markets with limited government intervention produce better economic outcomes than heavily regulated ones.',
     icon: '📈',
-    positions: { agree: 'R', disagree: 'D' },
   },
   {
     id: 'social',
     topic: 'Social Programs',
-    question: 'Expanding social safety net programs like Social Security and Medicaid is essential to supporting vulnerable Americans.',
+    question: 'Federal spending on social safety net programs like Medicare and Social Security should be maintained or expanded.',
     icon: '🤝',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'criminal',
     topic: 'Criminal Justice',
-    question: 'The U.S. should prioritize criminal justice reform, including reducing incarceration rates and addressing systemic bias.',
+    question: 'Reducing incarceration rates and reforming sentencing guidelines should be a federal priority.',
     icon: '🏛️',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'ai',
     topic: 'Artificial Intelligence',
-    question: 'The federal government should establish strict regulations on AI development to protect citizens from potential harms.',
+    question: 'The federal government should take an active role in regulating how artificial intelligence is developed and used.',
     icon: '🤖',
-    positions: { agree: 'D', disagree: 'R' },
   },
   {
     id: 'partisanship',
     topic: 'Party Partisanship',
-    question: 'Congress members should prioritize bipartisan cooperation over strict adherence to their party\'s agenda.',
-    icon: '🤜🤛',
-    positions: { agree: 'I', disagree: 'R' },
+    question: 'Elected officials should be willing to compromise across party lines, even if it means moving away from their party\'s platform.',
+    icon: '🤝',
   },
   {
     id: 'domestic',
     topic: 'Domestic Policy',
-    question: 'The federal government should increase investment in domestic infrastructure, housing, and community development over foreign aid.',
+    question: 'The U.S. should reduce foreign aid spending and redirect those funds toward domestic needs like infrastructure and housing.',
     icon: '🏗️',
-    positions: { agree: 'R', disagree: 'D' },
   },
   {
     id: 'country',
     topic: 'State of the Country',
-    question: 'The United States is currently on the wrong track and needs significant change in the direction of its leadership and policies.',
+    question: 'The policies of the current federal government are moving the country in the wrong direction.',
     icon: '🇺🇸',
-    positions: { agree: 'I', disagree: 'D' },
   },
   {
     id: 'termlimits',
     topic: 'Term Limits',
-    question: 'Congress should impose term limits on its members to prevent career politicians and bring fresh perspectives to government.',
+    question: 'Members of Congress should be subject to term limits to prevent career politicians from holding office indefinitely.',
     icon: '⏳',
-    positions: { agree: 'R', disagree: 'D' },
   },
 ]
 
@@ -124,7 +109,7 @@ const MEMBER_POSITIONS = {
   climate: { D: 1.7, R: -1.5, I: 1.8 },
   taxes: { D: 1.5, R: -1.7, I: 1.6 },
   immigration: { D: 1.4, R: -1.6, I: 1.3 },
-  guns: { D: 1.6, R: -1.4, I: 1.5 },
+  guns: { D: -1.4, R: 1.6, I: -1.2 },
   education: { D: 1.7, R: -1.3, I: 1.6 },
   defense: { D: -0.5, R: 1.6, I: -0.8 },
   economy: { D: -1.4, R: 1.7, I: -1.5 },
@@ -154,17 +139,14 @@ function scoreAlignment(answers) {
   return FEATURED_MEMBERS.map(member => {
     let totalScore = 0
     let maxScore = 0
-
     QUESTIONS.forEach(q => {
       const userAnswer = answers[q.id] ?? 0
       const partyPosition = MEMBER_POSITIONS[q.id][member.party] ?? 0
       const diff = Math.abs(userAnswer - partyPosition)
-      const maxDiff = 4
-      const score = ((maxDiff - diff) / maxDiff) * 100
+      const score = ((4 - diff) / 4) * 100
       totalScore += score
       maxScore += 100
     })
-
     return {
       ...member,
       alignment: Math.round((totalScore / maxScore) * 100),
@@ -188,12 +170,10 @@ export default function SurveyPage() {
   function handleAnswer(value) {
     const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: value }
     setAnswers(newAnswers)
-
     if (currentQ < QUESTIONS.length - 1) {
       setTimeout(() => setCurrentQ(q => q + 1), 300)
     } else {
-      const scored = scoreAlignment(newAnswers)
-      setResults(scored)
+      setResults(scoreAlignment(newAnswers))
     }
   }
 
@@ -219,13 +199,13 @@ export default function SurveyPage() {
             Who do you actually align with?
           </h1>
           <p className="text-gray-500 text-lg mb-6 leading-relaxed">
-            Answer 15 questions about the issues that matter most to you. We'll match you to the Congress members whose voting records best reflect your values — no party labels until the reveal.
+            Answer 15 questions on the issues that matter most to you. We'll match you to the Congress members whose voting records best reflect your values — no party labels until the reveal.
           </p>
           <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-8 text-left space-y-3">
             {[
-              '15 questions on key policy issues',
+              '15 neutral, nonpartisan questions',
               'Matched to real congressional voting records',
-              'Nonpartisan — party revealed only at the end',
+              'No party labels until the final reveal',
               'Takes about 3 minutes',
             ].map(item => (
               <div key={item} className="flex items-center gap-3 text-sm text-gray-600">
@@ -320,10 +300,7 @@ export default function SurveyPage() {
                   </div>
                   {revealed && (
                     <div className="mt-3 pt-3 border-t border-gray-50">
-                      <Link
-                        href={`/congress/${member.bioguideId}`}
-                        className="text-sm text-revela-blue hover:underline"
-                      >
+                      <Link href={`/congress/${member.bioguideId}`} className="text-sm text-revela-blue hover:underline">
                         View full profile & voting record →
                       </Link>
                     </div>
@@ -390,7 +367,6 @@ export default function SurveyPage() {
           <h2 className="font-display text-2xl font-bold text-revela-navy mt-2 mb-8 leading-snug">
             {q.question}
           </h2>
-
           <div className="space-y-3">
             {SCALE.map(option => (
               <button
