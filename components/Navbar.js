@@ -36,7 +36,8 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           <a href="/#how-it-works" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">How it works</a>
           <a href="/#mission" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Mission</a>
-          <a href="/congress" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Congress</a>
+          <a href="/congress" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Congress</a>
+          <a href="/map" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Map</a>
           <a href="#waitlist" className="text-sm font-medium bg-revela-blue text-white px-5 py-2 rounded-lg hover:bg-revela-blue-dark transition-colors">
             Join waitlist
           </a>
@@ -64,6 +65,7 @@ export default function Navbar() {
           <a href="/#how-it-works" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>How it works</a>
           <a href="/#mission" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Mission</a>
           <a href="/congress" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Congress</a>
+          <a href="/map" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Map</a>
           <a href="#waitlist" className="text-sm font-medium text-revela-blue" onClick={() => setMenuOpen(false)}>Join waitlist →</a>
         </div>
       )}
