@@ -4,17 +4,20 @@ import Link from 'next/link'
 import Navbar from '../../components/Navbar'
 import USMap from '../../components/USMap'
 
+const MIDTERM_DATE = new Date('2026-11-03T00:00:00')
+const daysLeft = Math.ceil((MIDTERM_DATE - new Date()) / (1000 * 60 * 60 * 24))
+
 export default function MapPage() {
   const [selectedState, setSelectedState] = useState(null)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(false)
-  const [zipCode, setZipCode] = useState('')
 
   async function handleStateSelect(state) {
     setSelectedState(state)
     setLoading(true)
+    setMembers([])
     try {
-      const res = await fetch(`/api/congress/members?state=${state.name}&limit=60&offset=0`)
+      const res = await fetch(`/api/congress/members/by-state?state=${encodeURIComponent(state.name)}`)
       const data = await res.json()
       setMembers(data.members || [])
     } catch (err) {
@@ -25,12 +28,32 @@ export default function MapPage() {
     }
   }
 
-  const senators = members.filter(m => m.terms?.[m.terms.length - 1]?.memberType === 'Senator')
-  const representatives = members.filter(m => m.terms?.[m.terms.length - 1]?.memberType === 'Representative')
+  function getLatestTerm(m) {
+    const terms = m.terms?.item || m.terms || []
+    const arr = Array.isArray(terms) ? terms : [terms]
+    return arr[arr.length - 1]
+  }
 
-  const MIDTERM_DATE = new Date('2026-11-03T00:00:00')
-  const now = new Date()
-  const daysLeft = Math.ceil((MIDTERM_DATE - now) / (1000 * 60 * 60 * 24))
+  function isCurrentMember(m) {
+    const t = getLatestTerm(m)
+    return !t?.endYear || t.endYear >= 2025
+  }
+
+  const senators = members.filter(m => {
+    const t = getLatestTerm(m)
+    return t?.chamber === 'Senate' && isCurrentMember(m)
+  })
+
+  const representatives = members.filter(m => {
+    const t = getLatestTerm(m)
+    return t?.chamber === 'House of Representatives' && isCurrentMember(m)
+  })
+
+  function partyStyle(partyName) {
+    if (partyName === 'Republican') return { bg: 'bg-red-50', text: 'text-red-700', label: 'R' }
+    if (partyName === 'Democratic') return { bg: 'bg-blue-50', text: 'text-blue-700', label: 'D' }
+    return { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'I' }
+  }
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -108,8 +131,7 @@ export default function MapPage() {
                   ) : (
                     <div className="space-y-3">
                       {senators.map(m => {
-                        const party = m.partyHistory?.[0]?.partyAbbreviation
-                        const partyColor = party === 'R' ? 'bg-red-50 text-red-700' : party === 'D' ? 'bg-blue-50 text-blue-700' : 'bg-yellow-50 text-yellow-700'
+                        const p = partyStyle(m.partyName)
                         return (
                           <Link
                             key={m.bioguideId}
@@ -117,8 +139,8 @@ export default function MapPage() {
                             className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"
                           >
                             <img
-                              src={`https://bioguide.congress.gov/bioguide/photo/${m.bioguideId[0]}/${m.bioguideId}.jpg`}
-                              className="w-10 h-10 rounded-full object-cover bg-gray-100"
+                              src={m.depiction?.imageUrl || `https://bioguide.congress.gov/bioguide/photo/${m.bioguideId[0]}/${m.bioguideId}.jpg`}
+                              className="w-10 h-10 rounded-full object-cover bg-gray-100 shrink-0"
                               onError={e => { e.target.style.display='none' }}
                               alt={m.name}
                             />
@@ -126,7 +148,7 @@ export default function MapPage() {
                               <p className="text-sm font-medium text-revela-navy truncate">{m.name}</p>
                               <p className="text-xs text-gray-400">U.S. Senator</p>
                             </div>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${partyColor}`}>{party}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${p.bg} ${p.text}`}>{p.label}</span>
                           </Link>
                         )
                       })}
@@ -134,34 +156,35 @@ export default function MapPage() {
                   )}
                 </div>
 
-                <div className="bg-white border border-gray-100 rounded-2xl p-5">
-                  <h3 className="font-display text-base font-bold text-revela-navy mb-1">
-                    House Representatives
-                  </h3>
-                  <p className="text-xs text-gray-400 mb-4">{representatives.length} representatives</p>
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {representatives.slice(0, 20).map(m => {
-                      const party = m.partyHistory?.[0]?.partyAbbreviation
-                      const partyColor = party === 'R' ? 'bg-red-50 text-red-700' : party === 'D' ? 'bg-blue-50 text-blue-700' : 'bg-yellow-50 text-yellow-700'
-                      return (
-                        <Link
-                          key={m.bioguideId}
-                          href={`/congress/${m.bioguideId}`}
-                          className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <p className="text-sm text-revela-navy truncate">{m.name}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ml-2 shrink-0 ${partyColor}`}>{party}</span>
-                        </Link>
-                      )
-                    })}
+                {representatives.length > 0 && (
+                  <div className="bg-white border border-gray-100 rounded-2xl p-5">
+                    <h3 className="font-display text-base font-bold text-revela-navy mb-1">
+                      House Representatives
+                    </h3>
+                    <p className="text-xs text-gray-400 mb-4">{representatives.length} shown</p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {representatives.map(m => {
+                        const p = partyStyle(m.partyName)
+                        return (
+                          <Link
+                            key={m.bioguideId}
+                            href={`/congress/${m.bioguideId}`}
+                            className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <p className="text-sm text-revela-navy truncate">{m.name}</p>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ml-2 shrink-0 ${p.bg} ${p.text}`}>{p.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                    <Link
+                      href="/congress"
+                      className="block text-center text-sm text-revela-blue mt-4 hover:underline"
+                    >
+                      View full Congress directory →
+                    </Link>
                   </div>
-                  <Link
-                    href={`/congress?state=${selectedState.name}`}
-                    className="block text-center text-sm text-revela-blue mt-4 hover:underline"
-                  >
-                    View all in Congress directory →
-                  </Link>
-                </div>
+                )}
 
                 <div className="bg-white border border-gray-100 rounded-2xl p-5">
                   <h3 className="font-display text-base font-bold text-revela-navy mb-4">Upcoming elections</h3>
