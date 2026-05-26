@@ -62,7 +62,7 @@ export default function CongressDirectory() {
     async function fetchMembers() {
       setLoading(true)
       try {
-        const res = await fetch(`/api/congress/members?offset=${page * PER_PAGE}&limit=${PER_PAGE}&party=${party}&chamber=${chamber}`)
+        const res = await fetch(`/api/congress/members?offset=${page * PER_PAGE}&limit=${PER_PAGE}`)
         const data = await res.json()
         setMembers(data.members || [])
       } catch (err) {
@@ -72,19 +72,26 @@ export default function CongressDirectory() {
       }
     }
     fetchMembers()
-  }, [page, party, chamber])
+  }, [page])
 
-  const filtered = members.filter(m =>
-    m.name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.state?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = members.filter(m => {
+    const latestChamber = m.terms?.item?.[m.terms.item.length - 1]?.chamber || ''
+    const matchesSearch =
+      m.name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.state?.toLowerCase().includes(search.toLowerCase())
+    const matchesParty = party === 'ALL' || m.partyName?.[0] === party
+    const matchesChamber =
+      chamber === 'ALL' ||
+      (chamber === 'Senate' && latestChamber === 'Senate') ||
+      (chamber === 'House' && latestChamber === 'House of Representatives')
+    return matchesSearch && matchesParty && matchesChamber
+  })
 
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="max-w-6xl mx-auto px-6 pt-28 pb-20">
 
-        {/* Header */}
         <div className="mb-10">
           <span className="inline-block text-xs font-medium tracking-widest uppercase text-revela-blue bg-revela-blue-light px-4 py-2 rounded-full mb-4">
             Congressional Directory
@@ -97,7 +104,6 @@ export default function CongressDirectory() {
           </p>
         </div>
 
-        {/* Filters */}
         <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-8 flex flex-col sm:flex-row gap-4">
           <input
             type="text"
@@ -127,7 +133,6 @@ export default function CongressDirectory() {
           </select>
         </div>
 
-        {/* Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(12)].map((_, i) => (
@@ -152,7 +157,6 @@ export default function CongressDirectory() {
               ))}
             </div>
 
-            {/* Pagination */}
             <div className="flex justify-center gap-4 mt-10">
               <button
                 onClick={() => setPage(p => Math.max(0, p - 1))}
