@@ -1,6 +1,36 @@
 import Navbar from '../components/Navbar'
 import WaitlistForm from '../components/WaitlistForm'
+function CountdownTimer() {
+  const [time, setTime] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
 
+  useEffect(() => {
+    const target = new Date('2026-11-03T00:00:00')
+    function update() {
+      const diff = target - new Date()
+      if (diff <= 0) return
+      setTime({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        mins: Math.floor((diff / (1000 * 60)) % 60),
+        secs: Math.floor((diff / 1000) % 60),
+      })
+    }
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex justify-center gap-4">
+      {[['days', time.days], ['hours', time.hours], ['mins', time.mins], ['secs', time.secs]].map(([label, val]) => (
+        <div key={label} className="bg-white/10 rounded-xl px-5 py-4 min-w-[72px] text-center">
+          <div className="font-display text-4xl font-bold text-white">{String(val).padStart(2, '0')}</div>
+          <div className="text-xs text-blue-300 uppercase tracking-widest mt-1">{label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
 const features = [
   {
     icon: (
@@ -109,7 +139,42 @@ export default function Home() {
           ))}
         </div>
       </section>
+<section className="py-20 px-6 bg-revela-navy">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs font-medium tracking-widest uppercase text-blue-300 mb-4">2026 Midterm Elections</p>
+          <h2 className="font-display text-4xl font-bold text-white mb-6">November 3, 2026</h2>
+          <CountdownTimer />
+          
+            <a
+href="https://vote.gov"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-8 text-sm font-medium text-white border border-white/30 px-6 py-3 rounded-lg hover:bg-white/10 transition-colors"
+          >
+            Are you registered to vote? →
+          </a>
+        </div>
+      </section>
 
+      <section className="py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-medium tracking-widest uppercase text-revela-blue mb-3">Interactive map</p>
+            <h2 className="font-display text-4xl font-bold text-revela-navy">Find your representatives</h2>
+            <p className="text-gray-500 mt-3">Click your state to explore who represents you in Congress.</p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 text-center">
+            
+              <a
+href="/map"
+              className="inline-block text-sm font-medium bg-revela-blue text-white px-6 py-3 rounded-lg hover:bg-revela-blue-dark transition-colors"
+            >
+              Open interactive map →
+            </a>
+            <p className="text-xs text-gray-400 mt-3">Click any state to see senators, representatives, and upcoming elections</p>
+          </div>
+        </div>
+      </section>
       <section id="how-it-works" className="bg-gray-50 py-28 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
