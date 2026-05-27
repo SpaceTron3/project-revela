@@ -37,7 +37,7 @@ function SectionHeader({ title, icon }) {
   )
 }
 
-function FundingBar({ label, amount, max }) {
+function FundingBar({ label, amount, max, color = 'bg-revela-blue' }) {
   const pct = max > 0 ? Math.min((amount / max) * 100, 100) : 0
   return (
     <div className="py-2 border-b border-gray-50 last:border-0">
@@ -46,10 +46,7 @@ function FundingBar({ label, amount, max }) {
         <span className="text-sm font-medium text-revela-blue shrink-0">{formatMoney(amount)}</span>
       </div>
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-revela-blue rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -61,8 +58,11 @@ export default function MemberProfile({ params }) {
   const [votes, setVotes] = useState([])
   const [bills, setBills] = useState([])
   const [finance, setFinance] = useState(null)
+  const [outsideSpending, setOutsideSpending] = useState(null)
+  const [outsideLoading, setOutsideLoading] = useState(true)
   const [financeLoading, setFinanceLoading] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     async function fetchData() {
@@ -80,20 +80,30 @@ export default function MemberProfile({ params }) {
         setVotes(votesData.votes || [])
         setBills(billsData.bills || [])
 
-        // Fetch FEC data after we have member info
         if (memberData.member) {
           const m = memberData.member
-          const fecRes = await fetch(
-           `/api/fec?name=${encodeURIComponent(m.lastName || m.directOrderName || '')}&state=${m.terms?.[m.terms.length - 1]?.stateCode || ''}` 
-          )
+          const lastName = m.lastName || m.directOrderName?.split(' ').pop() || ''
+          const stateCode = m.terms?.[m.terms.length - 1]?.stateCode || ''
+
+          const fecRes = await fetch(`/api/fec?name=${encodeURIComponent(lastName)}&state=${stateCode}`)
           const fecData = await fecRes.json()
           setFinance(fecData.finance)
+          setFinanceLoading(false)
+
+          // Fetch outside spending using candidateId from FEC
+          if (fecData.finance?.candidateId) {
+            const outsideRes = await fetch(`/api/outside-spending?candidateId=${fecData.finance.candidateId}`)
+            const outsideData = await outsideRes.json()
+            setOutsideSpending(outsideData)
+          }
+          setOutsideLoading(false)
         }
       } catch (err) {
         console.error(err)
       } finally {
         setLoading(false)
         setFinanceLoading(false)
+        setOutsideLoading(false)
       }
     }
     fetchData()
@@ -139,16 +149,23 @@ export default function MemberProfile({ params }) {
   const isSenator = latestTerm.memberType === 'Senator'
   const yearsInOffice = latestTerm.startYear ? new Date().getFullYear() - latestTerm.startYear : '—'
   const totalTerms = member.terms?.length || '—'
-
   const maxContributor = finance?.contributors?.[0]?.total || 0
   const maxIndustry = finance?.industries?.[0]?.total || 0
+  const maxPac = outsideSpending?.pacs?.[0]?.total || 0
+
+  const TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'finance', label: 'Campaign Finance' },
+    { id: 'outside', label: 'Super PACs' },
+    { id: 'votes', label: 'Votes' },
+    { id: 'bills', label: 'Bills' },
+  ]
 
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="max-w-4xl mx-auto px-6 pt-28 pb-20">
 
-        {/* Back link */}
         <Link href="/congress" className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-revela-blue transition-colors mb-8">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M15 18l-6-6 6-6"/>
@@ -172,9 +189,7 @@ export default function MemberProfile({ params }) {
             </div>
             <div className="flex-1">
               <div className="flex flex-wrap items-start gap-3 mb-2">
-                <h1 className="font-display text-3xl font-bold text-revela-navy">
-                  {member.directOrderName}
-                </h1>
+                <h1 className="font-display text-3xl font-bold text-revela-navy">{member.directOrderName}</h1>
                 <span className={`text-sm font-medium px-3 py-1 rounded-full border mt-1 ${party.bg} ${party.text} ${party.border}`}>
                   {party.label}
                 </span>
@@ -183,23 +198,21 @@ export default function MemberProfile({ params }) {
                 {isSenator ? 'U.S. Senator' : 'U.S. Representative'} · {member.state}
                 {!isSenator && latestTerm.district ? `, District ${latestTerm.district}` : ''}
               </p>
-              <div className="flex flex-wrap gap-3">
-                {member.officialWebsiteUrl && (
-                  <a
-                    href={member.officialWebsiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-revela-blue border border-revela-blue/20 px-4 py-2 rounded-lg hover:bg-revela-blue-light transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                      <polyline points="15 3 21 3 21 9"/>
-                      <line x1="10" y1="14" x2="21" y2="3"/>
-                    </svg>
-                    Official Website
-                  </a>
-                )}
-              </div>
+              {member.officialWebsiteUrl && (
+                <a
+                  href={member.officialWebsiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-revela-blue border border-revela-blue/20 px-4 py-2 rounded-lg hover:bg-revela-blue-light transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                  Official Website
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -212,167 +225,249 @@ export default function MemberProfile({ params }) {
           <StatCard label="Recent Votes" value={votes.length || '—'} sub="On record" />
         </div>
 
-        {/* Campaign Finance */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
-          <SectionHeader
-            title="Campaign Finance"
-            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
-          />
-
-          {financeLoading ? (
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-gray-100 rounded w-1/2"/>
-              <div className="h-4 bg-gray-100 rounded w-1/3"/>
-            </div>
-          ) : !finance ? (
-            <p className="text-sm text-gray-400">No FEC campaign finance data found for this member.</p>
-          ) : (
-            <>
-              {/* Finance summary */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-50 rounded-xl p-4 text-center">
-                  <div className="font-display text-2xl font-bold text-revela-blue">{formatMoney(finance.totalRaised)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Total Raised</div>
-                  {finance.cycle && <div className="text-xs text-gray-400">{finance.cycle} cycle</div>}
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4 text-center">
-                  <div className="font-display text-2xl font-bold text-revela-navy">{formatMoney(finance.totalSpent)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Total Spent</div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4 text-center">
-                  <div className="font-display text-2xl font-bold text-green-600">{formatMoney(finance.cashOnHand)}</div>
-                  <div className="text-xs text-gray-500 mt-1">Cash on Hand</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Top contributors */}
-                {finance.contributors?.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-revela-navy mb-3">Top Donors</h3>
-                    <div>
-                      {finance.contributors.slice(0, 8).map((c, i) => (
-                        <FundingBar key={i} label={c.name} amount={c.total} max={maxContributor} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Top industries */}
-                {finance.industries?.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-revela-navy mb-3">Top Industries</h3>
-                    <div>
-                      {finance.industries.slice(0, 8).map((ind, i) => (
-                        <FundingBar key={i} label={ind.name || 'Unknown'} amount={ind.total} max={maxIndustry} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <p className="text-xs text-gray-400 mt-4">Source: Federal Election Commission (FEC) public data</p>
-            </>
-          )}
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-revela-blue text-white'
+                  : 'bg-white border border-gray-100 text-gray-500 hover:border-revela-blue/30'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Leadership */}
-        {member.leadership?.length > 0 && (
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
-            <SectionHeader
-              title="Leadership Roles"
-              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}
-            />
-            <div className="space-y-3">
-              {member.leadership.map((role, i) => (
-                <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                  <span className="text-sm text-revela-navy">{role.type}</span>
-                  <span className="text-xs text-gray-400">Congress {role.congress}</span>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {member.leadership?.length > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6">
+                <SectionHeader
+                  title="Leadership Roles"
+                  icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>}
+                />
+                <div className="space-y-3">
+                  {member.leadership.map((role, i) => (
+                    <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-sm text-revela-navy">{role.type}</span>
+                      <span className="text-xs text-gray-400">Congress {role.congress}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+            <div className="bg-white border border-gray-100 rounded-2xl p-6">
+              <SectionHeader
+                title="Term History"
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+              />
+              <div className="space-y-3">
+                {member.terms?.slice().reverse().map((term, i) => (
+                  <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-revela-navy">{term.memberType}</p>
+                      <p className="text-xs text-gray-400">{term.stateCode || member.state}</p>
+                    </div>
+                    <span className="text-sm text-gray-500">{term.startYear} — {term.endYear || 'Present'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Recent votes */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
-          <SectionHeader
-            title="Recent Votes"
-            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>}
-          />
-          {votes.length === 0 ? (
-            <p className="text-sm text-gray-400">No recent votes on record.</p>
-          ) : (
-            <div className="space-y-3">
-              {votes.slice(0, 10).map((vote, i) => (
-                <div key={i} className="flex justify-between items-start py-2 border-b border-gray-50 last:border-0">
-                  <div className="flex-1 pr-4">
-                    <p className="text-sm text-revela-navy leading-snug">{vote.description || 'Vote recorded'}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{vote.date}</p>
+        {/* Campaign Finance Tab */}
+        {activeTab === 'finance' && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <SectionHeader
+              title="Campaign Finance"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+            />
+            {financeLoading ? (
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-gray-100 rounded w-1/2"/>
+                <div className="h-4 bg-gray-100 rounded w-1/3"/>
+              </div>
+            ) : !finance ? (
+              <p className="text-sm text-gray-400">No FEC campaign finance data found for this member.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className="font-display text-2xl font-bold text-revela-blue">{formatMoney(finance.totalRaised)}</div>
+                    <div className="text-xs text-gray-500 mt-1">Total Raised</div>
+                    {finance.cycle && <div className="text-xs text-gray-400">{finance.cycle} cycle</div>}
                   </div>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
-                    vote.votePosition === 'Yes' ? 'bg-green-50 text-green-600' :
-                    vote.votePosition === 'No' ? 'bg-red-50 text-red-600' :
-                    'bg-gray-50 text-gray-500'
-                  }`}>
-                    {vote.votePosition || '—'}
-                  </span>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className="font-display text-2xl font-bold text-revela-navy">{formatMoney(finance.totalSpent)}</div>
+                    <div className="text-xs text-gray-500 mt-1">Total Spent</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className="font-display text-2xl font-bold text-green-600">{formatMoney(finance.cashOnHand)}</div>
+                    <div className="text-xs text-gray-500 mt-1">Cash on Hand</div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sponsored bills */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
-          <SectionHeader
-            title="Sponsored Legislation"
-            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
-          />
-          {bills.length === 0 ? (
-            <p className="text-sm text-gray-400">No sponsored bills on record.</p>
-          ) : (
-            <div className="space-y-3">
-              {bills.slice(0, 10).map((bill, i) => (
-                <div key={i} className="py-2 border-b border-gray-50 last:border-0">
-                  <div className="flex justify-between items-start gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {finance.contributors?.length > 0 && (
                     <div>
-                      <p className="text-sm font-medium text-revela-navy">{bill.number}</p>
-                      <p className="text-sm text-gray-500 leading-snug mt-0.5">{bill.title}</p>
+                      <h3 className="text-sm font-medium text-revela-navy mb-3">Top Donors</h3>
+                      {finance.contributors.slice(0, 8).map((c, i) => (
+                        <FundingBar key={i} label={c.name} amount={c.total} max={maxContributor} />
+                      ))}
+                    </div>
+                  )}
+                  {finance.industries?.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-revela-navy mb-3">Top Industries</h3>
+                      {finance.industries.slice(0, 8).map((ind, i) => (
+                        <FundingBar key={i} label={ind.name || 'Unknown'} amount={ind.total} max={maxIndustry} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-4">Source: Federal Election Commission (FEC) public data</p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Super PACs Tab */}
+        {activeTab === 'outside' && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <SectionHeader
+              title="Outside Spending & Super PACs"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
+            />
+            <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+              Outside spending refers to money spent by Super PACs and other groups <em>independently</em> to support or oppose a candidate. This money is not coordinated with the candidate's campaign but can be unlimited in amount.
+            </p>
+            {outsideLoading ? (
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-gray-100 rounded w-1/2"/>
+                <div className="h-4 bg-gray-100 rounded w-3/4"/>
+              </div>
+            ) : !outsideSpending?.pacs?.length ? (
+              <p className="text-sm text-gray-400">No outside spending data found for this member.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className="font-display text-2xl font-bold text-revela-blue">{formatMoney(outsideSpending.totalOutside)}</div>
+                    <div className="text-xs text-gray-500 mt-1">Total Outside Spending</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className="font-display text-2xl font-bold text-green-600">{formatMoney(outsideSpending.totalSupport)}</div>
+                    <div className="text-xs text-gray-500 mt-1">Spent Supporting</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className="font-display text-2xl font-bold text-red-500">{formatMoney(outsideSpending.totalOppose)}</div>
+                    <div className="text-xs text-gray-500 mt-1">Spent Opposing</div>
+                  </div>
+                </div>
+                <h3 className="text-sm font-medium text-revela-navy mb-3">Top Super PACs & Outside Groups</h3>
+                {outsideSpending.pacs.map((pac, i) => (
+                  <div key={i} className="py-3 border-b border-gray-50 last:border-0">
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div className="flex-1 pr-4">
+                        <span className="text-sm text-revela-navy">{pac.name}</span>
+                        <div className="flex gap-2 mt-1">
+                          {pac.support > 0 && (
+                            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                              Support {formatMoney(pac.support)}
+                            </span>
+                          )}
+                          {pac.oppose > 0 && (
+                            <span className="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                              Oppose {formatMoney(pac.oppose)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-revela-blue shrink-0">{formatMoney(pac.total)}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-revela-blue rounded-full transition-all duration-500"
+                        style={{ width: `${maxPac > 0 ? (pac.total / maxPac) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-400 mt-4">Source: FEC Schedule E independent expenditure filings</p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Votes Tab */}
+        {activeTab === 'votes' && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <SectionHeader
+              title="Recent Votes"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>}
+            />
+            {votes.length === 0 ? (
+              <p className="text-sm text-gray-400">No recent votes on record.</p>
+            ) : (
+              <div className="space-y-3">
+                {votes.slice(0, 20).map((vote, i) => (
+                  <div key={i} className="flex justify-between items-start py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm text-revela-navy leading-snug">{vote.description || 'Vote recorded'}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{vote.date}</p>
                     </div>
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
-                      bill.latestAction?.text?.toLowerCase().includes('became') ? 'bg-green-50 text-green-600' :
-                      bill.latestAction?.text?.toLowerCase().includes('passed') ? 'bg-blue-50 text-blue-600' :
+                      vote.votePosition === 'Yes' ? 'bg-green-50 text-green-600' :
+                      vote.votePosition === 'No' ? 'bg-red-50 text-red-600' :
                       'bg-gray-50 text-gray-500'
                     }`}>
-                      {bill.latestAction?.text?.toLowerCase().includes('became') ? 'Enacted' :
-                       bill.latestAction?.text?.toLowerCase().includes('passed') ? 'Passed' : 'In Progress'}
+                      {vote.votePosition || '—'}
                     </span>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Term history */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6">
-          <SectionHeader
-            title="Term History"
-            icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-          />
-          <div className="space-y-3">
-            {member.terms?.slice().reverse().map((term, i) => (
-              <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                <div>
-                  <p className="text-sm font-medium text-revela-navy">{term.memberType}</p>
-                  <p className="text-xs text-gray-400">{term.stateCode || member.state}</p>
-                </div>
-                <span className="text-sm text-gray-500">{term.startYear} — {term.endYear || 'Present'}</span>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        )}
+
+        {/* Bills Tab */}
+        {activeTab === 'bills' && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <SectionHeader
+              title="Sponsored Legislation"
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
+            />
+            {bills.length === 0 ? (
+              <p className="text-sm text-gray-400">No sponsored bills on record.</p>
+            ) : (
+              <div className="space-y-3">
+                {bills.slice(0, 20).map((bill, i) => (
+                  <div key={i} className="py-2 border-b border-gray-50 last:border-0">
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-revela-navy">{bill.number}</p>
+                        <p className="text-sm text-gray-500 leading-snug mt-0.5">{bill.title}</p>
+                      </div>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${
+                        bill.latestAction?.text?.toLowerCase().includes('became') ? 'bg-green-50 text-green-600' :
+                        bill.latestAction?.text?.toLowerCase().includes('passed') ? 'bg-blue-50 text-blue-600' :
+                        'bg-gray-50 text-gray-500'
+                      }`}>
+                        {bill.latestAction?.text?.toLowerCase().includes('became') ? 'Enacted' :
+                         bill.latestAction?.text?.toLowerCase().includes('passed') ? 'Passed' : 'In Progress'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </main>
