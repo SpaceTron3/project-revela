@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import WaitlistForm from '../components/WaitlistForm'
+import FollowTheMoney from '../components/FollowTheMoney'
 
 function CountdownTimer() {
   const [time, setTime] = useState({ days: 0, hours: 0, mins: 0, secs: 0 })
@@ -211,6 +212,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <FollowTheMoney />
 
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
