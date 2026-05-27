@@ -3,11 +3,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import Navbar from '../../../components/Navbar'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
-
 const CATEGORIES = [
   'Healthcare', 'Economy', 'Immigration', 'Defense', 'Education',
   'Climate', 'Taxes', 'Infrastructure', 'Criminal Justice', 'Foreign Policy',
@@ -22,6 +17,10 @@ const STATUS_STYLES = {
 }
 
 export default function AdminPromises() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
   const [promises, setPromises] = useState([])
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(null)
