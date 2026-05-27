@@ -23,7 +23,7 @@ export async function POST(request) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 1000,
         messages: [
           {
@@ -53,6 +53,7 @@ Respond in this exact JSON format only, no other text:
     })
 
     const aiData = await response.json()
+    console.log('Claude API response:', JSON.stringify(aiData).slice(0, 500))
     const content = aiData.content?.[0]?.text || ''
 
     let analysis
