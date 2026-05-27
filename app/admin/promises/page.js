@@ -11,17 +11,20 @@ async function supabaseRequest(path, options = {}) {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': options.prefer || '',
+      'Prefer': options.prefer || 'return=minimal',
       ...options.headers,
     },
     ...options,
   })
-  if (!res.ok && res.status !== 204) {
-    const err = await res.json()
+  if (!res.ok) {
+    const text = await res.text()
+    let err
+    try { err = JSON.parse(text) } catch { err = { message: text || 'Unknown error' } }
     throw new Error(err.message || 'Supabase error')
   }
-  if (res.status === 204) return null
-  return res.json()
+  const text = await res.text()
+  if (!text) return null
+  try { return JSON.parse(text) } catch { return null }
 }
 
 const CATEGORIES = [
