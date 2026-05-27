@@ -73,6 +73,8 @@ export default function MemberProfile({ params }) {
   const [votes, setVotes] = useState([])
   const [bills, setBills] = useState([])
   const [finance, setFinance] = useState(null)
+  const [promises, setPromises] = useState([])
+  const [promiseStats, setPromiseStats] = useState(null)
   const [outsideSpending, setOutsideSpending] = useState(null)
   const [correlation, setCorrelation] = useState(null)
   const [correlationLoading, setCorrelationLoading] = useState(false)
@@ -85,17 +87,21 @@ export default function MemberProfile({ params }) {
     async function fetchData() {
       setLoading(true)
       try {
-        const [memberRes, votesRes, billsRes] = await Promise.all([
+        const [memberRes, votesRes, billsRes, promisesRes] = await Promise.all([
           fetch(`/api/congress/member/${bioguideId}`),
           fetch(`/api/congress/member/${bioguideId}/votes`),
           fetch(`/api/congress/member/${bioguideId}/bills`),
+          fetch(`/api/promises?bioguideId=${bioguideId}`),
         ])
         const memberData = await memberRes.json()
         const votesData = await votesRes.json()
         const billsData = await billsRes.json()
+        const promisesData = await promisesRes.json()
         setMember(memberData.member)
         setVotes(votesData.votes || [])
         setBills(billsData.bills || [])
+        setPromises(promisesData.promises || [])
+        setPromiseStats(promisesData.stats || null)
 
         if (memberData.member) {
           const m = memberData.member
@@ -176,6 +182,7 @@ export default function MemberProfile({ params }) {
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
+    { id: 'promises', label: '🎯 Promise Tracker' },
     { id: 'correlation', label: '💰 Follow the Money' },
     { id: 'finance', label: 'Campaign Finance' },
     { id: 'outside', label: 'Super PACs' },
@@ -263,6 +270,89 @@ export default function MemberProfile({ params }) {
             </button>
           ))}
         </div>
+
+        {/* Promises Tab */}
+        {activeTab === 'promises' && (
+          <div className="space-y-6">
+            {promiseStats && promiseStats.total > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center">
+                    <div className="font-display text-3xl font-bold text-revela-navy">{promiseStats.total}</div>
+                    <div className="text-xs text-gray-400 mt-1">Total Tracked</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-display text-3xl font-bold text-green-600">{promiseStats.kept}</div>
+                    <div className="text-xs text-gray-400 mt-1">Kept</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-display text-3xl font-bold text-red-500">{promiseStats.broken}</div>
+                    <div className="text-xs text-gray-400 mt-1">Broken</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-display text-3xl font-bold text-blue-500">{promiseStats.inProgress}</div>
+                    <div className="text-xs text-gray-400 mt-1">In Progress</div>
+                  </div>
+                </div>
+                {promiseStats.fulfillmentRate !== null && (
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <div className={`font-display text-4xl font-bold mb-1 ${
+                      promiseStats.fulfillmentRate >= 70 ? 'text-green-600' :
+                      promiseStats.fulfillmentRate >= 40 ? 'text-yellow-600' : 'text-red-500'
+                    }`}>{promiseStats.fulfillmentRate}%</div>
+                    <div className="text-sm text-gray-500">Promise fulfillment rate</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="bg-white border border-gray-100 rounded-2xl p-6">
+              <SectionHeader
+                title="Campaign Promises"
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>}
+              />
+              {promises.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400">No promises tracked yet for this member.</p>
+                  <p className="text-xs text-gray-400 mt-2">Our team is actively adding and verifying campaign promises.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {promises.map((p, i) => (
+                    <div key={i} className="border border-gray-100 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-xs text-revela-blue bg-revela-blue-light px-2 py-0.5 rounded-full">{p.category}</span>
+                            {p.date_made && <span className="text-xs text-gray-400">{new Date(p.date_made).toLocaleDateString()}</span>}
+                          </div>
+                          <p className="text-sm text-revela-navy leading-snug">{p.promise_text}</p>
+                          {p.ai_reasoning && (
+                            <p className="text-xs text-gray-500 mt-2 leading-relaxed italic">{p.ai_reasoning}</p>
+                          )}
+                          {p.source && (
+                            <p className="text-xs text-gray-400 mt-1">Source: {p.source_url ? <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="text-revela-blue hover:underline">{p.source}</a> : p.source}</p>
+                          )}
+                        </div>
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full border shrink-0 ${
+                          p.status === 'Kept' ? 'bg-green-50 text-green-700 border-green-200' :
+                          p.status === 'Broken' ? 'bg-red-50 text-red-700 border-red-200' :
+                          p.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-gray-50 text-gray-600 border-gray-200'
+                        }`}>
+                          {p.status === 'Kept' ? '✅ Kept' :
+                           p.status === 'Broken' ? '❌ Broken' :
+                           p.status === 'In Progress' ? '🔄 In Progress' : '❓ Unverifiable'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-4">Promises are verified by the Project Revela team using AI analysis of legislative records.</p>
+            </div>
+          </div>
+        )}
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
