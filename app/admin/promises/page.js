@@ -79,11 +79,20 @@ export default function AdminPromises() {
     }
     setSubmitting(true)
     try {
-      await supabaseRequest('promises', {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/promises`, {
         method: 'POST',
-        prefer: 'return=minimal',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
         body: JSON.stringify({ ...form, verified: false }),
       })
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || 'Failed to save')
+      }
       setMessage('Promise saved! Review and verify it below.')
       setForm({ bioguide_id: '', member_name: '', promise_text: '', category: 'Economy', source: '', source_url: '', date_made: '', status: 'In Progress' })
       fetchPromises()
