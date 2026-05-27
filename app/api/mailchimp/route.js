@@ -7,40 +7,33 @@ export async function POST(request) {
     return Response.json({ error: 'Valid email is required' }, { status: 400 })
   }
 
-  const API_KEY = process.env.MAILCHIMP_API_KEY
-  const AUDIENCE_ID = process.env.MAILCHIMP_AUDIENCE_ID
-  const SERVER = 'us15'
-
-  const url = `https://${SERVER}.api.mailchimp.com/3.0/lists/${AUDIENCE_ID}/members`
-
-  // Mailchimp requires Basic auth with any username and API key as password
-  const credentials = Buffer.from(`anystring:${API_KEY}`).toString('base64')
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   try {
-    const response = await fetch(url, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${credentials}`,
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
       },
-      body: JSON.stringify({
-        email_address: email,
-        status: 'subscribed',
-      }),
+      body: JSON.stringify({ email }),
     })
 
-    const result = await response.json()
-    console.log('Mailchimp response:', response.status, JSON.stringify(result).slice(0, 200))
-
-    if (response.ok || result.title === 'Member Exists') {
-      return Response.json({ success: true })
+    if (!res.ok) {
+      const text = await res.text()
+      // Check if it's a duplicate email
+      if (text.includes('duplicate') || text.includes('unique')) {
+        return Response.json({ success: true }) // Already on list, that's fine
+      }
+      return Response.json({ error: 'Failed to save email' }, { status: 400 })
     }
 
-    return Response.json({
-      error: result.detail || result.title || 'Something went wrong'
-    }, { status: 400 })
+    return Response.json({ success: true })
   } catch (error) {
-    console.error('Mailchimp error:', error)
+    console.error('Waitlist error:', error)
     return Response.json({ error: 'Server error' }, { status: 500 })
   }
 }
