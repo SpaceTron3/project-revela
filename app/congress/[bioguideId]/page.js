@@ -37,7 +37,7 @@ function SectionHeader({ title, icon }) {
   )
 }
 
-function FundingBar({ label, amount, max, color = 'bg-revela-blue' }) {
+function FundingBar({ label, amount, max }) {
   const pct = max > 0 ? Math.min((amount / max) * 100, 100) : 0
   return (
     <div className="py-2 border-b border-gray-50 last:border-0">
@@ -46,8 +46,23 @@ function FundingBar({ label, amount, max, color = 'bg-revela-blue' }) {
         <span className="text-sm font-medium text-revela-blue shrink-0">{formatMoney(amount)}</span>
       </div>
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+        <div className="h-full bg-revela-blue rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  )
+}
+
+function CorrelationMeter({ score }) {
+  const color = score >= 70 ? 'text-red-600' : score >= 50 ? 'text-yellow-600' : 'text-green-600'
+  const bgColor = score >= 70 ? 'bg-red-500' : score >= 50 ? 'bg-yellow-500' : 'bg-green-500'
+  const label = score >= 70 ? 'High alignment' : score >= 50 ? 'Moderate alignment' : 'Low alignment'
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full ${bgColor} rounded-full transition-all duration-700`} style={{ width: `${score}%` }} />
+      </div>
+      <span className={`text-sm font-bold ${color} w-12 text-right`}>{score}%</span>
+      <span className={`text-xs ${color}`}>{label}</span>
     </div>
   )
 }
@@ -59,6 +74,8 @@ export default function MemberProfile({ params }) {
   const [bills, setBills] = useState([])
   const [finance, setFinance] = useState(null)
   const [outsideSpending, setOutsideSpending] = useState(null)
+  const [correlation, setCorrelation] = useState(null)
+  const [correlationLoading, setCorrelationLoading] = useState(false)
   const [outsideLoading, setOutsideLoading] = useState(true)
   const [financeLoading, setFinanceLoading] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -90,11 +107,22 @@ export default function MemberProfile({ params }) {
           setFinance(fecData.finance)
           setFinanceLoading(false)
 
-          // Fetch outside spending using candidateId from FEC
           if (fecData.finance?.candidateId) {
             const outsideRes = await fetch(`/api/outside-spending?candidateId=${fecData.finance.candidateId}`)
             const outsideData = await outsideRes.json()
             setOutsideSpending(outsideData)
+
+            // Fetch correlation using top industries
+            if (fecData.finance?.industries?.length) {
+              setCorrelationLoading(true)
+              const topIndustries = fecData.finance.industries.slice(0, 5).map(i => i.name).filter(Boolean)
+              if (topIndustries.length) {
+                const corrRes = await fetch(`/api/correlation?bioguideId=${bioguideId}&industries=${encodeURIComponent(topIndustries.join(','))}`)
+                const corrData = await corrRes.json()
+                setCorrelation(corrData)
+              }
+              setCorrelationLoading(false)
+            }
           }
           setOutsideLoading(false)
         }
@@ -122,9 +150,6 @@ export default function MemberProfile({ params }) {
                 <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"/>
                 <div className="h-6 bg-gray-200 rounded w-24"/>
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              {[1,2,3].map(i => <div key={i} className="h-24 bg-gray-200 rounded-2xl"/>)}
             </div>
           </div>
         </div>
@@ -155,6 +180,7 @@ export default function MemberProfile({ params }) {
 
   const TABS = [
     { id: 'overview', label: 'Overview' },
+    { id: 'correlation', label: '💰 Follow the Money' },
     { id: 'finance', label: 'Campaign Finance' },
     { id: 'outside', label: 'Super PACs' },
     { id: 'votes', label: 'Votes' },
@@ -281,6 +307,94 @@ export default function MemberProfile({ params }) {
           </div>
         )}
 
+        {/* Follow the Money / Correlation Tab */}
+        {activeTab === 'correlation' && (
+          <div className="space-y-6">
+            <div className="bg-white border border-gray-100 rounded-2xl p-6">
+              <SectionHeader
+                title="Follow the Money"
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 6v6l4 2"/></svg>}
+              />
+              <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                This analysis compares this member's top donor industries with their actual voting record on related legislation. A high alignment score means they frequently vote in ways that benefit their donors.
+              </p>
+
+              {correlationLoading ? (
+                <div className="animate-pulse space-y-4">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-4 bg-gray-100 rounded w-1/3"/>
+                      <div className="h-2 bg-gray-100 rounded w-full"/>
+                    </div>
+                  ))}
+                </div>
+              ) : !correlation?.correlations?.length ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-400">Not enough voting data to calculate correlations for this member.</p>
+                  <p className="text-xs text-gray-400 mt-2">This feature works best for long-serving members with extensive voting records.</p>
+                </div>
+              ) : (
+                <>
+                  {correlation.overallScore !== null && (
+                    <div className="bg-gray-50 rounded-2xl p-5 mb-6 text-center">
+                      <p className="text-xs font-medium tracking-widest uppercase text-gray-400 mb-2">Overall Donor Alignment Score</p>
+                      <div className={`font-display text-5xl font-bold mb-2 ${
+                        correlation.overallScore >= 70 ? 'text-red-600' :
+                        correlation.overallScore >= 50 ? 'text-yellow-600' : 'text-green-600'
+                      }`}>
+                        {correlation.overallScore}%
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {correlation.overallScore >= 70
+                          ? 'Votes strongly align with donor interests'
+                          : correlation.overallScore >= 50
+                          ? 'Votes moderately align with donor interests'
+                          : 'Votes show low alignment with donor interests'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-6">
+                    {correlation.correlations.map((c, i) => (
+                      <div key={i} className="border-b border-gray-50 pb-6 last:border-0 last:pb-0">
+                        <div className="flex justify-between items-center mb-3">
+                          <h3 className="text-sm font-medium text-revela-navy">{c.industry}</h3>
+                          <span className="text-xs text-gray-400">{c.totalVotes} relevant votes</span>
+                        </div>
+                        <CorrelationMeter score={c.alignmentScore} />
+                        {c.relevantVotes?.length > 0 && (
+                          <div className="mt-4 space-y-2">
+                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Related votes</p>
+                            {c.relevantVotes.map((v, j) => (
+                              <div key={j} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
+                                  v.position === 'Yes' || v.position === 'Yea'
+                                    ? 'bg-green-50 text-green-600'
+                                    : 'bg-red-50 text-red-600'
+                                }`}>
+                                  {v.position}
+                                </span>
+                                <div className="flex-1">
+                                  <p className="text-xs text-revela-navy leading-snug">{v.description}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5">{v.date}</p>
+                                </div>
+                                {v.aligned && (
+                                  <span className="text-xs text-orange-500 shrink-0">Donor aligned</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-6">Based on FEC campaign finance data and congressional voting records. Alignment scores indicate voting patterns relative to donor industry interests.</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Campaign Finance Tab */}
         {activeTab === 'finance' && (
           <div className="bg-white border border-gray-100 rounded-2xl p-6">
@@ -344,7 +458,7 @@ export default function MemberProfile({ params }) {
               icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
             />
             <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-              Outside spending refers to money spent by Super PACs and other groups <em>independently</em> to support or oppose a candidate. This money is not coordinated with the candidate's campaign but can be unlimited in amount.
+              Outside spending refers to money spent by Super PACs and other groups independently to support or oppose a candidate. This money is not coordinated with the candidate's campaign but can be unlimited in amount.
             </p>
             {outsideLoading ? (
               <div className="animate-pulse space-y-3">
