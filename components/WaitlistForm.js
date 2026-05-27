@@ -3,17 +3,31 @@ import { useState } from 'react'
 
 export default function WaitlistForm({ dark = false }) {
   const [email, setEmail] = useState('')
-  const [status, setStatus] = useState('idle') // idle | success | error
+  const [status, setStatus] = useState('idle') // idle | loading | success | error
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!email || !email.includes('@')) {
       setStatus('error')
       return
     }
-    // TODO: wire to your email service (Mailchimp, ConvertKit, etc.)
-    setStatus('success')
-    setEmail('')
+    setStatus('loading')
+    try {
+      const res = await fetch('/api/mailchimp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setStatus('success')
+        setEmail('')
+      } else {
+        setStatus('error')
+      }
+    } catch {
+      setStatus('error')
+    }
   }
 
   if (status === 'success') {
@@ -37,6 +51,7 @@ export default function WaitlistForm({ dark = false }) {
           value={email}
           onChange={e => { setEmail(e.target.value); setStatus('idle') }}
           placeholder="your@email.com"
+          disabled={status === 'loading'}
           className={`w-full px-4 py-3 rounded-lg text-sm border outline-none transition-colors ${
             status === 'error'
               ? 'border-red-400 focus:border-red-500'
@@ -51,9 +66,10 @@ export default function WaitlistForm({ dark = false }) {
       </div>
       <button
         type="submit"
-        className="px-6 py-3 bg-revela-blue hover:bg-revela-blue-dark text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+        disabled={status === 'loading'}
+        className="px-6 py-3 bg-revela-blue hover:bg-revela-blue-dark text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap disabled:opacity-50"
       >
-        Notify me
+        {status === 'loading' ? 'Saving...' : 'Notify me'}
       </button>
     </form>
   )
