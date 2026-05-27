@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import Navbar from '../../components/Navbar'
+import Navbar from '../../../components/Navbar'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
