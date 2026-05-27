@@ -1,7 +1,28 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import Navbar from '../../../components/Navbar'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+async function supabaseRequest(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+      ...options.headers,
+    },
+    ...options,
+  })
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json()
+    throw new Error(err.message || 'Supabase error')
+  }
+  if (res.status === 204) return null
+  return res.json()
+}
 
 const CATEGORIES = [
   'Healthcare', 'Economy', 'Immigration', 'Defense', 'Education',
@@ -17,10 +38,6 @@ const STATUS_STYLES = {
 }
 
 export default function AdminPromises() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
   const [promises, setPromises] = useState([])
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(null)
@@ -43,11 +60,12 @@ export default function AdminPromises() {
 
   async function fetchPromises() {
     setLoading(true)
-    const { data } = await supabase
-      .from('promises')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setPromises(data || [])
+    try {
+      const data = await supabaseRequest('promises?order=created_at.desc')
+      setPromises(data || [])
+    } catch (err) {
+      setMessage('Error loading promises: ' + err.message)
+    }
     setLoading(false)
   }
 
@@ -57,16 +75,17 @@ export default function AdminPromises() {
       return
     }
     setSubmitting(true)
-    const { error } = await supabase.from('promises').insert([{
-      ...form,
-      verified: false,
-    }])
-    if (error) {
-      setMessage('Error saving promise: ' + error.message)
-    } else {
+    try {
+      await supabaseRequest('promises', {
+        method: 'POST',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ ...form, verified: false }),
+      })
       setMessage('Promise saved! Review and verify it below.')
       setForm({ bioguide_id: '', member_name: '', promise_text: '', category: 'Economy', source: '', source_url: '', date_made: '', status: 'In Progress' })
       fetchPromises()
+    } catch (err) {
+      setMessage('Error saving promise: ' + err.message)
     }
     setSubmitting(false)
   }
@@ -74,7 +93,6 @@ export default function AdminPromises() {
   async function analyzeWithAI(promise) {
     setAnalyzing(promise.id)
     try {
-      // Fetch bills for this member
       const billsRes = await fetch(`/api/congress/member/${promise.bioguide_id}/bills`)
       const billsData = await billsRes.json()
 
@@ -92,25 +110,48 @@ export default function AdminPromises() {
       setMessage(`AI Analysis: ${data.status} — ${data.reasoning}`)
       fetchPromises()
     } catch (err) {
-      setMessage('AI analysis failed')
+      setMessage('AI analysis failed: ' + err.message)
     }
     setAnalyzing(null)
   }
 
   async function updateStatus(id, status) {
-    await supabase.from('promises').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
-    fetchPromises()
+    try {
+      await supabaseRequest(`promises?id=eq.${id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
+      })
+      fetchPromises()
+    } catch (err) {
+      setMessage('Error updating status: ' + err.message)
+    }
   }
 
   async function toggleVerified(id, verified) {
-    await supabase.from('promises').update({ verified: !verified }).eq('id', id)
-    fetchPromises()
+    try {
+      await supabaseRequest(`promises?id=eq.${id}`, {
+        method: 'PATCH',
+        prefer: 'return=minimal',
+        body: JSON.stringify({ verified: !verified }),
+      })
+      fetchPromises()
+    } catch (err) {
+      setMessage('Error updating: ' + err.message)
+    }
   }
 
   async function deletePromise(id) {
     if (!confirm('Delete this promise?')) return
-    await supabase.from('promises').delete().eq('id', id)
-    fetchPromises()
+    try {
+      await supabaseRequest(`promises?id=eq.${id}`, {
+        method: 'DELETE',
+        prefer: 'return=minimal',
+      })
+      fetchPromises()
+    } catch (err) {
+      setMessage('Error deleting: ' + err.message)
+    }
   }
 
   return (
@@ -133,7 +174,6 @@ export default function AdminPromises() {
           </div>
         )}
 
-        {/* Add Promise Form */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-8">
           <h2 className="font-display text-xl font-bold text-revela-navy mb-5">Add New Promise</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -208,7 +248,6 @@ export default function AdminPromises() {
           </button>
         </div>
 
-        {/* Promises List */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6">
           <h2 className="font-display text-xl font-bold text-revela-navy mb-5">
             All Promises ({promises.length})
@@ -225,7 +264,7 @@ export default function AdminPromises() {
                 <div key={p.id} className={`border rounded-xl p-4 ${p.verified ? 'border-green-100 bg-green-50/30' : 'border-gray-100'}`}>
                   <div className="flex items-start justify-between gap-4 mb-2">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-sm font-medium text-revela-navy">{p.member_name}</span>
                         <span className="text-xs text-gray-400">{p.bioguide_id}</span>
                         <span className="text-xs text-revela-blue bg-revela-blue-light px-2 py-0.5 rounded-full">{p.category}</span>
@@ -237,7 +276,7 @@ export default function AdminPromises() {
                       )}
                       {p.source && <p className="text-xs text-gray-400 mt-1">Source: {p.source}</p>}
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="shrink-0">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[p.status] || STATUS_STYLES['Unverifiable']}`}>
                         {p.status}
                       </span>
