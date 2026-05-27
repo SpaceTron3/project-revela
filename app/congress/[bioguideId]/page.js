@@ -112,17 +112,13 @@ export default function MemberProfile({ params }) {
             const outsideData = await outsideRes.json()
             setOutsideSpending(outsideData)
 
-            // Fetch correlation using top industries
-            if (fecData.finance?.industries?.length) {
-              setCorrelationLoading(true)
-              const topIndustries = fecData.finance.industries.slice(0, 5).map(i => i.name).filter(Boolean)
-              if (topIndustries.length) {
-                const corrRes = await fetch(`/api/correlation?bioguideId=${bioguideId}&industries=${encodeURIComponent(topIndustries.join(','))}`)
-                const corrData = await corrRes.json()
-                setCorrelation(corrData)
-              }
-              setCorrelationLoading(false)
-            }
+            // Fetch correlation using bill sponsorship data
+            setCorrelationLoading(true)
+            const topIndustries = fecData.finance?.industries?.slice(0, 6).map(i => i.name).filter(Boolean) || []
+            const corrRes = await fetch(`/api/correlation?bioguideId=${bioguideId}&industries=${encodeURIComponent(topIndustries.join(','))}`)
+            const corrData = await corrRes.json()
+            setCorrelation(corrData)
+            setCorrelationLoading(false)
           }
           setOutsideLoading(false)
         }
@@ -316,7 +312,7 @@ export default function MemberProfile({ params }) {
                 icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 6v6l4 2"/></svg>}
               />
               <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-                This analysis compares this member's top donor industries with their actual voting record on related legislation. A high alignment score means they frequently vote in ways that benefit their donors.
+                This analysis compares this member's top donor industries with the legislation they sponsor. A high sponsorship rate in an industry means they actively champion bills that benefit their donors.
               </p>
 
               {correlationLoading ? (
@@ -330,57 +326,58 @@ export default function MemberProfile({ params }) {
                 </div>
               ) : !correlation?.correlations?.length ? (
                 <div className="text-center py-8">
-                  <p className="text-sm text-gray-400">Not enough voting data to calculate correlations for this member.</p>
-                  <p className="text-xs text-gray-400 mt-2">This feature works best for long-serving members with extensive voting records.</p>
+                  <p className="text-sm text-gray-400">Not enough bill sponsorship data to calculate correlations for this member.</p>
+                  <p className="text-xs text-gray-400 mt-2">This feature works best for members with extensive legislative records.</p>
                 </div>
               ) : (
                 <>
-                  {correlation.overallScore !== null && (
-                    <div className="bg-gray-50 rounded-2xl p-5 mb-6 text-center">
-                      <p className="text-xs font-medium tracking-widest uppercase text-gray-400 mb-2">Overall Donor Alignment Score</p>
-                      <div className={`font-display text-5xl font-bold mb-2 ${
-                        correlation.overallScore >= 70 ? 'text-red-600' :
-                        correlation.overallScore >= 50 ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
-                        {correlation.overallScore}%
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        {correlation.overallScore >= 70
-                          ? 'Votes strongly align with donor interests'
-                          : correlation.overallScore >= 50
-                          ? 'Votes moderately align with donor interests'
-                          : 'Votes show low alignment with donor interests'}
-                      </p>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-xl p-4 text-center">
+                      <div className="font-display text-2xl font-bold text-revela-blue">{correlation.totalBills}</div>
+                      <div className="text-xs text-gray-500 mt-1">Total Bills Analyzed</div>
                     </div>
-                  )}
+                    <div className="bg-gray-50 rounded-xl p-4 text-center">
+                      <div className="font-display text-2xl font-bold text-revela-navy">{correlation.correlations.length}</div>
+                      <div className="text-xs text-gray-500 mt-1">Industries With Matches</div>
+                    </div>
+                  </div>
 
                   <div className="space-y-6">
                     {correlation.correlations.map((c, i) => (
                       <div key={i} className="border-b border-gray-50 pb-6 last:border-0 last:pb-0">
-                        <div className="flex justify-between items-center mb-3">
+                        <div className="flex justify-between items-center mb-2">
                           <h3 className="text-sm font-medium text-revela-navy">{c.industry}</h3>
-                          <span className="text-xs text-gray-400">{c.totalVotes} relevant votes</span>
+                          <span className="text-xs text-gray-400">{c.totalBills} bills sponsored</span>
                         </div>
                         <CorrelationMeter score={c.alignmentScore} />
-                        {c.relevantVotes?.length > 0 && (
+                        <div className="flex gap-3 mt-2">
+                          {c.enacted > 0 && (
+                            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{c.enacted} enacted</span>
+                          )}
+                          {c.passed > 0 && (
+                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{c.passed} passed</span>
+                          )}
+                        </div>
+                        {c.exampleBills?.length > 0 && (
                           <div className="mt-4 space-y-2">
-                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Related votes</p>
-                            {c.relevantVotes.map((v, j) => (
-                              <div key={j} className="flex items-start gap-3 py-2 border-b border-gray-50 last:border-0">
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
-                                  v.position === 'Yes' || v.position === 'Yea'
-                                    ? 'bg-green-50 text-green-600'
-                                    : 'bg-red-50 text-red-600'
-                                }`}>
-                                  {v.position}
-                                </span>
-                                <div className="flex-1">
-                                  <p className="text-xs text-revela-navy leading-snug">{v.description}</p>
-                                  <p className="text-xs text-gray-400 mt-0.5">{v.date}</p>
+                            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Example sponsored bills</p>
+                            {c.exampleBills.map((b, j) => (
+                              <div key={j} className="py-2 border-b border-gray-50 last:border-0">
+                                <div className="flex justify-between items-start gap-3">
+                                  <div className="flex-1">
+                                    <p className="text-xs font-medium text-revela-blue">{b.number}</p>
+                                    <p className="text-xs text-revela-navy leading-snug mt-0.5">{b.title}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">{b.date}</p>
+                                  </div>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                                    b.latestAction?.toLowerCase().includes('became') ? 'bg-green-50 text-green-600' :
+                                    b.latestAction?.toLowerCase().includes('passed') ? 'bg-blue-50 text-blue-600' :
+                                    'bg-gray-50 text-gray-500'
+                                  }`}>
+                                    {b.latestAction?.toLowerCase().includes('became') ? 'Enacted' :
+                                     b.latestAction?.toLowerCase().includes('passed') ? 'Passed' : 'In Progress'}
+                                  </span>
                                 </div>
-                                {v.aligned && (
-                                  <span className="text-xs text-orange-500 shrink-0">Donor aligned</span>
-                                )}
                               </div>
                             ))}
                           </div>
@@ -388,7 +385,7 @@ export default function MemberProfile({ params }) {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400 mt-6">Based on FEC campaign finance data and congressional voting records. Alignment scores indicate voting patterns relative to donor industry interests.</p>
+                  <p className="text-xs text-gray-400 mt-6">Based on FEC campaign finance data and Congress.gov sponsored legislation records. Sponsorship rates indicate legislative priorities relative to donor industries.</p>
                 </>
               )}
             </div>
