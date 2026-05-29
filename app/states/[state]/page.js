@@ -1,30 +1,48 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Navbar from '../../../components/Navbar'
 import { STATE_FACTS } from '../../../lib/stateFacts'
+import { STATE_THEMES, getStateFlag } from '../../../lib/stateThemes'
 
-function StatBadge({ label, value, icon }) {
+function StatCard({ icon, label, value, accent, light, text }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 text-center hover:border-revela-blue/30 hover:shadow-sm transition-all">
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="font-display text-lg font-bold text-revela-navy mb-1">{value}</div>
-      <div className="text-xs text-gray-400 uppercase tracking-wide">{label}</div>
+    <div style={{ background: light, borderRadius: 12, padding: '12px', textAlign: 'center' }}>
+      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+      <div style={{ fontSize: 12, fontWeight: 500, color: text }}>{value}</div>
+      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{label}</div>
     </div>
   )
 }
 
 export default function StatePage({ params }) {
-  const stateName = decodeURIComponent(params.state).replace(/-/g, ' ')
-    .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  const stateName = decodeURIComponent(params.state)
+    .replace(/-/g, ' ')
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
 
-  const facts = STATE_FACTS[stateName]
+  const facts = STATE_FACTS[stateName] || STATE_FACTS[
+    Object.keys(STATE_FACTS).find(k => k.toLowerCase() === stateName.toLowerCase())
+  ]
+
+  const theme = STATE_THEMES[stateName] || { from: '#185FA5', to: '#0C447C', accent: '#3b82f6', light: '#dbeafe', text: '#1e40af' }
+
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('overview')
   const [quizAnswered, setQuizAnswered] = useState(false)
   const [quizCorrect, setQuizCorrect] = useState(false)
   const [revealedCeleb, setRevealedCeleb] = useState(null)
-  const [activeTab, setActiveTab] = useState('overview')
+
+  const quizOptions = useMemo(() => {
+    if (!facts) return []
+    const wrong = ['Bald Eagle', 'Cardinal', 'Robin', 'Blue Jay', 'Mockingbird', 'Pelican', 'Flamingo']
+      .filter(b => b !== facts.bird)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+    return [...wrong, facts.bird].sort(() => Math.random() - 0.5)
+  }, [facts])
 
   useEffect(() => {
     async function fetchMembers() {
@@ -80,7 +98,7 @@ export default function StatePage({ params }) {
     return { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'I' }
   }
 
-  const quizOptions = [facts.bird, 'Bald Eagle', 'Cardinal', 'Robin'].sort(() => Math.random() - 0.5)
+  const flagUrl = getStateFlag(facts.code)
 
   const TABS = [
     { id: 'overview', label: '🗺️ Overview' },
@@ -102,39 +120,77 @@ export default function StatePage({ params }) {
         </Link>
 
         {/* Hero */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-8 mb-6">
-          <div className="flex flex-col sm:flex-row gap-6 items-start">
-            <div className="flex-1">
-              <span className="inline-block text-xs font-medium tracking-widest uppercase text-revela-blue bg-revela-blue-light px-4 py-2 rounded-full mb-4">
-                {facts.nickname}
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${theme.from} 0%, ${theme.to} 100%)`,
+            borderRadius: 20,
+            padding: '2rem',
+            marginBottom: '1.5rem',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', bottom: -30, right: -30, width: 250, height: 250, background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', top: -50, right: 80, width: 150, height: 150, background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
+
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.7, color: 'white', display: 'block', marginBottom: 6 }}>
+                State of {stateName}
               </span>
-              <h1 className="font-display text-5xl font-bold text-revela-navy mb-2">{stateName}</h1>
-              <p className="text-gray-500 text-lg mb-4">Capital: {facts.capital} · {facts.electoralVotes} Electoral Votes</p>
-              <div className="flex flex-wrap gap-3">
-                <span className="text-sm bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg text-gray-600">
-                  👥 {facts.population} residents
-                </span>
-                <span className="text-sm bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg text-gray-600">
-                  🗓️ Founded {facts.founded}
-                </span>
-                <span className="text-sm bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-lg text-gray-600">
-                  #{facts.statehood} state
-                </span>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, color: 'white', margin: '0 0 4px' }}>
+                {stateName}
+              </h1>
+              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', marginBottom: 16 }}>
+                {facts.nickname}
+              </p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  `👥 ${facts.population}`,
+                  `🏛️ ${facts.capital}`,
+                  `🗳️ ${facts.electoralVotes} Electoral Votes`,
+                  `#${facts.statehood} State`,
+                ].map(pill => (
+                  <span key={pill} style={{
+                    background: 'rgba(255,255,255,0.15)',
+                    border: '0.5px solid rgba(255,255,255,0.25)',
+                    padding: '4px 12px',
+                    borderRadius: 100,
+                    fontSize: 12,
+                    color: 'white',
+                  }}>
+                    {pill}
+                  </span>
+                ))}
               </div>
             </div>
-            <div className="bg-revela-blue-light rounded-2xl p-6 text-center shrink-0">
-              <div className="font-display text-6xl font-bold text-revela-blue">{facts.code}</div>
-              <div className="text-xs text-gray-500 mt-1 uppercase tracking-wide">State Code</div>
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <img
+                src={flagUrl}
+                alt={`${stateName} state flag`}
+                style={{
+                  width: 130,
+                  height: 87,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  border: '2px solid rgba(255,255,255,0.35)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                }}
+                onError={e => { e.target.style.display = 'none' }}
+              />
+              <p style={{ fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', marginTop: 6 }}>
+                State Flag
+              </p>
             </div>
           </div>
         </div>
 
         {/* Quick stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <StatBadge icon="🐦" label="State Bird" value={facts.bird} />
-          <StatBadge icon="🌸" label="State Flower" value={facts.flower} />
-          <StatBadge icon="🌳" label="State Tree" value={facts.tree} />
-          <StatBadge icon="🗳️" label="Electoral Votes" value={facts.electoralVotes} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: '1.5rem' }}>
+          <StatCard icon="🐦" label="State Bird" value={facts.bird} accent={theme.accent} light={theme.light} text={theme.text} />
+          <StatCard icon="🌸" label="State Flower" value={facts.flower} accent={theme.accent} light={theme.light} text={theme.text} />
+          <StatCard icon="🌳" label="State Tree" value={facts.tree} accent={theme.accent} light={theme.light} text={theme.text} />
+          <StatCard icon="📜" label="Founded" value={facts.founded.split(',')[1]?.trim() || facts.founded} accent={theme.accent} light={theme.light} text={theme.text} />
         </div>
 
         {/* Tabs */}
@@ -145,9 +201,10 @@ export default function StatePage({ params }) {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-revela-blue text-white'
-                  : 'bg-white border border-gray-100 text-gray-500 hover:border-revela-blue/30'
+                  ? 'text-white'
+                  : 'bg-white border border-gray-100 text-gray-500 hover:border-gray-300'
               }`}
+              style={activeTab === tab.id ? { background: theme.from } : {}}
             >
               {tab.label}
             </button>
@@ -156,22 +213,25 @@ export default function StatePage({ params }) {
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
+            {/* Motto */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6">
-              <h2 className="font-display text-xl font-bold text-revela-navy mb-4">State Motto</h2>
-              <blockquote className="font-display text-2xl font-bold text-revela-blue italic mb-2">
+              <p className="text-xs font-medium tracking-widest uppercase mb-2" style={{ color: theme.text }}>State Motto</p>
+              <blockquote className="font-display text-2xl font-bold" style={{ color: theme.from }}>
                 "{facts.motto}"
               </blockquote>
             </div>
 
-            {/* Interactive Quiz */}
-            <div className="bg-revela-navy rounded-2xl p-6 text-white">
-              <p className="text-xs font-medium tracking-widest uppercase text-blue-300 mb-2">Quick Quiz</p>
-              <h2 className="font-display text-2xl font-bold text-white mb-6">
+            {/* Quiz */}
+            <div style={{ background: theme.to, borderRadius: 20, padding: '1.5rem' }}>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: theme.accent, marginBottom: 8 }}>
+                Quick Quiz
+              </p>
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: 'white', marginBottom: 16 }}>
                 What is {stateName}'s state bird?
               </h2>
               {!quizAnswered ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {quizOptions.map(option => (
                     <button
                       key={option}
@@ -179,23 +239,37 @@ export default function StatePage({ params }) {
                         setQuizAnswered(true)
                         setQuizCorrect(option === facts.bird)
                       }}
-                      className="px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-sm font-medium transition-colors text-left"
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '0.5px solid rgba(255,255,255,0.2)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
                     >
                       {option}
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className={`rounded-xl p-4 ${quizCorrect ? 'bg-green-500/20 border border-green-400/30' : 'bg-red-500/20 border border-red-400/30'}`}>
-                  <p className="font-medium text-white text-lg mb-1">
+                <div style={{
+                  background: quizCorrect ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
+                  border: `0.5px solid ${quizCorrect ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                  borderRadius: 12,
+                  padding: '1rem',
+                }}>
+                  <p style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>
                     {quizCorrect ? '🎉 Correct!' : '❌ Not quite!'}
                   </p>
-                  <p className="text-blue-200 text-sm">
-                    {stateName}'s state bird is the <strong className="text-white">{facts.bird}</strong>.
+                  <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+                    {stateName}'s state bird is the <strong style={{ color: 'white' }}>{facts.bird}</strong>.
                   </p>
                   <button
                     onClick={() => setQuizAnswered(false)}
-                    className="mt-3 text-xs text-blue-300 hover:text-white transition-colors underline"
+                    style={{ color: theme.accent, fontSize: 12, marginTop: 8, textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
                   >
                     Try again
                   </button>
@@ -207,12 +281,12 @@ export default function StatePage({ params }) {
 
         {/* Representatives Tab */}
         {activeTab === 'representatives' && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="bg-white border border-gray-100 rounded-2xl p-6">
               <h2 className="font-display text-xl font-bold text-revela-navy mb-5">U.S. Senators</h2>
               {loading ? (
                 <div className="animate-pulse space-y-3">
-                  {[1,2].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl"/>)}
+                  {[1,2].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl"/>)}
                 </div>
               ) : senators.length === 0 ? (
                 <p className="text-sm text-gray-400">No senators found.</p>
@@ -254,7 +328,7 @@ export default function StatePage({ params }) {
               </div>
               {loading ? (
                 <div className="animate-pulse space-y-2">
-                  {[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-gray-100 rounded-lg"/>)}
+                  {[1,2,3,4].map(i => <div key={i} className="h-10 bg-gray-100 rounded-lg"/>)}
                 </div>
               ) : representatives.length === 0 ? (
                 <p className="text-sm text-gray-400">No representatives found.</p>
@@ -281,39 +355,52 @@ export default function StatePage({ params }) {
 
         {/* Fun Facts Tab */}
         {activeTab === 'funfacts' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            <div
+              style={{
+                background: theme.light,
+                border: `0.5px solid ${theme.accent}40`,
+                borderRadius: 20,
+                padding: '1.5rem',
+              }}
+            >
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: theme.text, marginBottom: 8 }}>
+                💡 Did you know?
+              </p>
+              <p style={{ fontSize: 16, color: theme.from, lineHeight: 1.7, fontWeight: 500 }}>
+                {facts.funFact}
+              </p>
+            </div>
+
             <div className="bg-white border border-gray-100 rounded-2xl p-6">
-              <h2 className="font-display text-xl font-bold text-revela-navy mb-6">Did You Know?</h2>
-              <div className="bg-revela-blue-light border border-revela-blue/20 rounded-xl p-6 mb-6">
-                <div className="text-3xl mb-3">💡</div>
-                <p className="text-revela-navy text-base leading-relaxed font-medium">{facts.funFact}</p>
+              <h2 className="font-display text-xl font-bold text-revela-navy mb-5">State Details</h2>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: 'State Bird', value: `🐦 ${facts.bird}` },
+                  { label: 'State Flower', value: `🌸 ${facts.flower}` },
+                  { label: 'State Tree', value: `🌳 ${facts.tree}` },
+                  { label: 'Capital City', value: `🏛️ ${facts.capital}` },
+                  { label: 'Population', value: `👥 ${facts.population}` },
+                  { label: 'Founded', value: `🗓️ ${facts.founded}` },
+                  { label: 'Statehood Order', value: `#${facts.statehood}` },
+                  { label: 'Electoral Votes', value: `🗳️ ${facts.electoralVotes}` },
+                ].map(item => (
+                  <div key={item.label} className="bg-gray-50 rounded-xl p-4">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{item.label}</p>
+                    <p className="text-sm font-medium text-revela-navy">{item.value}</p>
+                  </div>
+                ))}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">State Bird</p>
-                  <p className="text-sm font-medium text-revela-navy">🐦 {facts.bird}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">State Flower</p>
-                  <p className="text-sm font-medium text-revela-navy">🌸 {facts.flower}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">State Tree</p>
-                  <p className="text-sm font-medium text-revela-navy">🌳 {facts.tree}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Founded</p>
-                  <p className="text-sm font-medium text-revela-navy">🗓️ {facts.founded}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Population</p>
-                  <p className="text-sm font-medium text-revela-navy">👥 {facts.population}</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Electoral Votes</p>
-                  <p className="text-sm font-medium text-revela-navy">🗳️ {facts.electoralVotes} votes</p>
-                </div>
-              </div>
+            </div>
+
+            <div className="bg-white border border-gray-100 rounded-2xl p-6">
+              <h2 className="font-display text-xl font-bold text-revela-navy mb-4">State Motto</h2>
+              <blockquote
+                className="font-display text-2xl font-bold"
+                style={{ color: theme.from }}
+              >
+                "{facts.motto}"
+              </blockquote>
             </div>
           </div>
         )}
@@ -321,25 +408,27 @@ export default function StatePage({ params }) {
         {/* Celebrities Tab */}
         {activeTab === 'celebrities' && (
           <div className="bg-white border border-gray-100 rounded-2xl p-6">
-            <h2 className="font-display text-xl font-bold text-revela-navy mb-2">Notable People from {stateName}</h2>
-            <p className="text-sm text-gray-400 mb-6">Click each name to reveal why they're famous.</p>
+            <h2 className="font-display text-xl font-bold text-revela-navy mb-2">
+              Notable People from {stateName}
+            </h2>
+            <p className="text-sm text-gray-400 mb-6">Tap each card to learn more.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {facts.celebrities.map((celeb, i) => (
                 <button
                   key={i}
                   onClick={() => setRevealedCeleb(revealedCeleb === celeb ? null : celeb)}
-                  className={`text-left px-5 py-4 rounded-xl border transition-all ${
-                    revealedCeleb === celeb
-                      ? 'border-revela-blue bg-revela-blue-light'
-                      : 'border-gray-100 hover:border-revela-blue/30 hover:bg-gray-50'
-                  }`}
+                  className="text-left px-5 py-4 rounded-xl border transition-all"
+                  style={{
+                    borderColor: revealedCeleb === celeb ? theme.accent : '#f3f4f6',
+                    background: revealedCeleb === celeb ? theme.light : 'white',
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-revela-navy text-sm">{celeb}</span>
-                    <span className="text-revela-blue text-lg">{revealedCeleb === celeb ? '−' : '+'}</span>
+                    <span style={{ color: theme.text, fontSize: 18 }}>{revealedCeleb === celeb ? '−' : '+'}</span>
                   </div>
                   {revealedCeleb === celeb && (
-                    <p className="text-xs text-revela-blue mt-2">
+                    <p className="text-xs mt-2" style={{ color: theme.text }}>
                       Born in {stateName} · Notable figure in American history and culture
                     </p>
                   )}
