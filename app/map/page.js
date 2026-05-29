@@ -122,6 +122,20 @@ export default function MapPage() {
 
             {selectedState && !loading && (
               <>
+                {/* State Page Link */}
+                <Link
+                  href={`/states/${encodeURIComponent(selectedState.name)}`}
+                  className="flex items-center justify-between bg-white border border-revela-blue/30 rounded-2xl p-4 hover:bg-revela-blue-light transition-colors group"
+                >
+                  <div>
+                    <p className="font-medium text-revela-navy text-sm">{selectedState.name} State Page</p>
+                    <p className="text-xs text-gray-400">Facts, history, flag & more</p>
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="2" className="shrink-0 group-hover:translate-x-1 transition-transform">
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                </Link>
+
                 <div className="bg-white border border-gray-100 rounded-2xl p-5">
                   <h3 className="font-display text-base font-bold text-revela-navy mb-4">
                     {selectedState.name} — Senators
