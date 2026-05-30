@@ -30,6 +30,7 @@ export default function StatePage({ params }) {
   const theme = STATE_THEMES[stateName] || { from: '#185FA5', to: '#0C447C', accent: '#3b82f6', light: '#dbeafe', text: '#1e40af' }
 
   const [members, setMembers] = useState([])
+  const [executives, setExecutives] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [quizAnswered, setQuizAnswered] = useState(false)
@@ -57,7 +58,14 @@ export default function StatePage({ params }) {
         setLoading(false)
       }
     }
-    if (stateName) fetchMembers()
+    if (stateName) {
+      fetchMembers()
+      // Fetch state executives
+      fetch(`/api/state-executives?state=${encodeURIComponent(stateName)}`)
+        .then(r => r.json())
+        .then(d => setExecutives(d.executives || []))
+        .catch(err => console.error(err))
+    }
   }, [stateName])
 
   if (!facts) {
@@ -278,6 +286,43 @@ export default function StatePage({ params }) {
         {/* Representatives Tab */}
         {activeTab === 'representatives' && (
           <div className="space-y-5">
+
+            {/* State Executives */}
+            {executives.length > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6">
+                <p className="text-xs font-medium tracking-widest uppercase mb-1" style={{ color: theme.text }}>State Government</p>
+                <h2 className="font-display text-xl font-bold text-revela-navy mb-5">Executive Branch</h2>
+                <div className="space-y-3">
+                  {executives.map((exec, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors">
+                      {exec.image ? (
+                        <img
+                          src={exec.image}
+                          alt={exec.name}
+                          className="w-12 h-12 rounded-full object-cover bg-gray-100 shrink-0"
+                          onError={e => { e.target.style.display='none' }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-sm" style={{ background: theme.from }}>
+                          {exec.name[0]}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-revela-navy text-sm">{exec.name}</p>
+                        <p className="text-xs text-gray-400">{exec.title}</p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 ${
+                        exec.party === 'Republican' ? 'bg-red-50 text-red-700' :
+                        exec.party === 'Democratic' ? 'bg-blue-50 text-blue-700' :
+                        'bg-gray-50 text-gray-600'
+                      }`}>
+                        {exec.party === 'Republican' ? 'R' : exec.party === 'Democratic' ? 'D' : 'I'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="bg-white border border-gray-100 rounded-2xl p-6">
               <h2 className="font-display text-xl font-bold text-revela-navy mb-5">U.S. Senators</h2>
               {loading ? (
