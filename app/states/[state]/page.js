@@ -223,59 +223,14 @@ export default function StatePage({ params }) {
               </blockquote>
             </div>
 
-            {/* Quiz */}
+            {/* Fun Fact */}
             <div style={{ background: theme.to, borderRadius: 20, padding: '1.5rem' }}>
               <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: theme.accent, marginBottom: 8 }}>
-                Quick Quiz
+                💡 Did You Know?
               </p>
-              <h2 style={{ fontSize: 20, fontWeight: 600, color: 'white', marginBottom: 16 }}>
-                What is {stateName}'s state bird?
-              </h2>
-              {!quizAnswered ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {quizOptions.map(option => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setQuizAnswered(true)
-                        setQuizCorrect(option === facts.bird)
-                      }}
-                      style={{
-                        background: 'rgba(255,255,255,0.1)',
-                        border: '0.5px solid rgba(255,255,255,0.2)',
-                        color: 'white',
-                        padding: '10px 14px',
-                        borderRadius: 10,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div style={{
-                  background: quizCorrect ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
-                  border: `0.5px solid ${quizCorrect ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
-                  borderRadius: 12,
-                  padding: '1rem',
-                }}>
-                  <p style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>
-                    {quizCorrect ? '🎉 Correct!' : '❌ Not quite!'}
-                  </p>
-                  <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
-                    {stateName}'s state bird is the <strong style={{ color: 'white' }}>{facts.bird}</strong>.
-                  </p>
-                  <button
-                    onClick={() => setQuizAnswered(false)}
-                    style={{ color: theme.accent, fontSize: 12, marginTop: 8, textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
+              <p style={{ fontSize: 16, color: 'white', lineHeight: 1.7, fontWeight: 400 }}>
+                {facts.funFact}
+              </p>
             </div>
 
             {/* Presidents */}
@@ -397,6 +352,61 @@ export default function StatePage({ params }) {
         {/* Fun Facts Tab */}
         {activeTab === 'funfacts' && (
           <div className="space-y-5">
+            {/* Quiz */}
+            <div style={{ background: theme.to, borderRadius: 20, padding: '1.5rem' }}>
+              <p style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: theme.accent, marginBottom: 8 }}>
+                Quick Quiz
+              </p>
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: 'white', marginBottom: 16 }}>
+                What is {stateName}'s state bird?
+              </h2>
+              {!quizAnswered ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {quizOptions.map(option => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setQuizAnswered(true)
+                        setQuizCorrect(option === facts.bird)
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '0.5px solid rgba(255,255,255,0.2)',
+                        color: 'white',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  background: quizCorrect ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
+                  border: `0.5px solid ${quizCorrect ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                  borderRadius: 12,
+                  padding: '1rem',
+                }}>
+                  <p style={{ color: 'white', fontWeight: 600, marginBottom: 4 }}>
+                    {quizCorrect ? '🎉 Correct!' : '❌ Not quite!'}
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14 }}>
+                    {stateName}'s state bird is the <strong style={{ color: 'white' }}>{facts.bird}</strong>.
+                  </p>
+                  <button
+                    onClick={() => setQuizAnswered(false)}
+                    style={{ color: theme.accent, fontSize: 12, marginTop: 8, textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div
               style={{
                 background: theme.light,
