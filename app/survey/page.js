@@ -173,7 +173,19 @@ export default function SurveyPage() {
     if (currentQ < QUESTIONS.length - 1) {
       setTimeout(() => setCurrentQ(q => q + 1), 300)
     } else {
-      setResults(scoreAlignment(newAnswers))
+      const scored = scoreAlignment(newAnswers)
+      setResults(scored)
+      // Save to Supabase in background
+      const topMatch = scored[0]
+      fetch('/api/survey-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: newAnswers,
+          topMatch: topMatch?.name || null,
+          topMatchAlignment: topMatch?.alignment || null,
+        }),
+      }).catch(err => console.error('Failed to save survey:', err))
     }
   }
 
