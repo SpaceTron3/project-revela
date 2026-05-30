@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Navbar from '../../../components/Navbar'
 import { STATE_FACTS } from '../../../lib/stateFacts'
 import { STATE_THEMES, getStateFlag } from '../../../lib/stateThemes'
+import { PRESIDENTS_BY_STATE } from '../../../lib/presidentsByState'
 
 function StatCard({ icon, label, value, accent, light, text }) {
   return (
@@ -105,6 +106,7 @@ export default function StatePage({ params }) {
     { id: 'representatives', label: '🏛️ Representatives' },
     { id: 'funfacts', label: '🎯 Fun Facts' },
     { id: 'celebrities', label: '⭐ Notable People' },
+    { id: 'presidents', label: '🇺🇸 Presidents' },
   ]
 
   return (
@@ -435,6 +437,79 @@ export default function StatePage({ params }) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Presidents Tab */}
+        {activeTab === 'presidents' && (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <h2 className="font-display text-xl font-bold text-revela-navy mb-2">
+              Presidents Born in {stateName}
+            </h2>
+            {(() => {
+              const presidents = PRESIDENTS_BY_STATE[stateName] || []
+              if (presidents.length === 0) {
+                return (
+                  <div className="text-center py-12">
+                    <div className="text-5xl mb-4">🏛️</div>
+                    <p className="text-gray-500 text-sm">No U.S. presidents were born in {stateName}.</p>
+                    <p className="text-gray-400 text-xs mt-2">Virginia leads with 8 presidents, followed by Ohio with 7.</p>
+                  </div>
+                )
+              }
+              return (
+                <>
+                  <p className="text-sm text-gray-400 mb-6">{presidents.length} president{presidents.length !== 1 ? 's' : ''} {presidents.length !== 1 ? 'have' : 'has'} roots in {stateName}.</p>
+                  <div className="space-y-4">
+                    {presidents.map((p, i) => (
+                      <div
+                        key={i}
+                        style={{ background: theme.light, borderRadius: 16, padding: '1rem' }}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div
+                            style={{
+                              background: theme.from,
+                              color: 'white',
+                              borderRadius: 10,
+                              width: 48,
+                              height: 48,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 14,
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {p.number ? `#${p.number}` : 'VP'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <h3 className="font-display text-base font-bold text-revela-navy">{p.name}</h3>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  padding: '2px 8px',
+                                  borderRadius: 100,
+                                  background: p.party === 'Democrat' ? '#dbeafe' : p.party === 'Republican' ? '#fee2e2' : '#f3f4f6',
+                                  color: p.party === 'Democrat' ? '#1e40af' : p.party === 'Republican' ? '#991b1b' : '#374151',
+                                }}
+                              >
+                                {p.party}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500">{p.years}</p>
+                            <p className="text-xs text-gray-400 mt-1">Born: {p.born}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
+            <p className="text-xs text-gray-400 mt-6">Some presidents represented a state different from their birthplace.</p>
           </div>
         )}
 
