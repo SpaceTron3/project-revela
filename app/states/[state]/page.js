@@ -297,7 +297,7 @@ export default function StatePage({ params }) {
                     <div key={i} className="flex items-center gap-4 p-3 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors">
                       {exec.image ? (
                         <img
-                          src={exec.image}
+                          src={`/api/image-proxy?url=${encodeURIComponent(exec.image)}`}
                           alt={exec.name}
                           className="w-12 h-12 rounded-full object-cover bg-gray-100 shrink-0"
                           onError={e => { e.target.style.display='none' }}
