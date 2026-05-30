@@ -92,11 +92,22 @@ export async function GET(request) {
     }
 
     const data = await res.json()
+
+    const IMAGE_OVERRIDES = {
+      'Ron DeSantis': 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Ron_DeSantis_official_portrait_%28cropped%29.jpg/440px-Ron_DeSantis_official_portrait_%28cropped%29.jpg',
+      'Gavin Newsom': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Gavin_Newsom_2019.jpg/440px-Gavin_Newsom_2019.jpg',
+      'Greg Abbott': 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Greg_Abbott.jpg/440px-Greg_Abbott.jpg',
+      'Kathy Hochul': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Kathy_Hochul_official_photo_%28cropped%29.jpg/440px-Kathy_Hochul_official_photo_%28cropped%29.jpg',
+      'Gretchen Whitmer': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Gretchen_Whitmer_official_portrait_%28cropped%29.jpg/440px-Gretchen_Whitmer_official_portrait_%28cropped%29.jpg',
+      'Brian Kemp': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Brian_Kemp_official_portrait_%28cropped%29.jpg/440px-Brian_Kemp_official_portrait_%28cropped%29.jpg',
+      'Josh Shapiro': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Josh_Shapiro_official_portrait%2C_2023_%28cropped%29.jpg/440px-Josh_Shapiro_official_portrait%2C_2023_%28cropped%29.jpg',
+    }
+
     let executives = (data.results || []).map(p => ({
       name: p.name,
       title: p.current_role?.title?.replace(/_/g, ' ') || 'Official',
       party: p.party,
-      image: p.image || null,
+      image: IMAGE_OVERRIDES[p.name] || (p.image?.includes('flgov.com') ? null : p.image) || null,
       email: p.email || null,
       url: p.openstates_url || null,
     }))
