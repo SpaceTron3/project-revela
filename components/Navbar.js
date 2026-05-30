@@ -30,15 +30,17 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-100">
       <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet" />
-      <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <a href="/"><Logo /></a>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           <a href="/#how-it-works" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">How it works</a>
           <a href="/#mission" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Mission</a>
-          <a href="/congress" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Congress</a>
+          <a href="/congress" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Congress</a>
           <a href="/map" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Map</a>
-          <a href="#waitlist" className="text-sm font-medium bg-revela-blue text-white px-5 py-2 rounded-lg hover:bg-revela-blue-dark transition-colors">
+          <a href="/states/Florida" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">States</a>
+          <a href="/survey" className="text-sm text-gray-500 hover:text-revela-navy transition-colors">Survey</a>
+          <a href="/#waitlist" className="text-sm font-medium bg-revela-blue text-white px-5 py-2 rounded-lg hover:bg-revela-blue-dark transition-colors">
             Join waitlist
           </a>
         </div>
@@ -66,7 +68,9 @@ export default function Navbar() {
           <a href="/#mission" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Mission</a>
           <a href="/congress" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Congress</a>
           <a href="/map" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Map</a>
-          <a href="#waitlist" className="text-sm font-medium text-revela-blue" onClick={() => setMenuOpen(false)}>Join waitlist →</a>
+          <a href="/states/Florida" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>States</a>
+          <a href="/survey" className="text-sm text-gray-600" onClick={() => setMenuOpen(false)}>Survey</a>
+          <a href="/#waitlist" className="text-sm font-medium text-revela-blue" onClick={() => setMenuOpen(false)}>Join waitlist →</a>
         </div>
       )}
     </nav>
