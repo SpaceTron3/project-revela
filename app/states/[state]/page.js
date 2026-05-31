@@ -295,7 +295,7 @@ export default function StatePage({ params }) {
                 <div className="space-y-3">
                   {executives.map((exec, i) => (
                     <div key={i} className="flex items-center gap-4 p-3 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-sm" style={{ background: theme.from }}>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-sm" style={{ background: exec.party === 'Republican' ? '#dc2626' : exec.party === 'Democratic' ? '#2563eb' : '#6b7280' }}>
                         {exec.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
                       </div>
                       <div className="flex-1">
